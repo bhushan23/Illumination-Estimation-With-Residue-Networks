@@ -38,7 +38,7 @@ def predict_celeba(sfs_net_model, dl, train_epoch_num = 0,
             face   = face.cuda()
         
         # predicted_face == reconstruction
-        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, predicted_face = sfs_net_model(face)
+        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, predicted_corrected_shading, predicted_face = sfs_net_model(face)
         
         if bix == fix_bix_dump or dump_all_images:
             # save predictions in log folder
@@ -47,6 +47,7 @@ def predict_celeba(sfs_net_model, dl, train_epoch_num = 0,
             wandb_log_images(wandb, predicted_normal, None, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, None, suffix +' Predicted Albedo', train_epoch_num, suffix+' Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, predicted_shading, None, suffix+' Predicted Shading', train_epoch_num, suffix+' Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
+            wandb_log_images(wandb, predicted_corrected_shading, None, suffix+' Predicted Corrected Shading', train_epoch_num, suffix+' Predicted Corrected Shading', path=file_name + '_predicted_corrected_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_face, None, suffix+' Predicted face', train_epoch_num, suffix+' Predicted face', path=file_name + '_predicted_face.png', denormalize=False)
             wandb_log_images(wandb, face, None, suffix+' Ground Truth', train_epoch_num, suffix+' Ground Truth', path=file_name + '_gt_face.png')
 
@@ -104,9 +105,9 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
             face   = face.cuda()
         
         # Apply Mask on input image
-        face = applyMask(face, mask)
+        # face = applyMask(face, mask)
         # predicted_face == reconstruction
-        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, predicted_face = sfs_net_model(face)
+        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, predicted_corrected_shading, predicted_face = sfs_net_model(face)
 
         if bix == fix_bix_dump:
             # save predictions in log folder
@@ -115,6 +116,7 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
             wandb_log_images(wandb, predicted_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, suffix +' Predicted Albedo', train_epoch_num, suffix+' Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, predicted_shading, mask, suffix+' Predicted Shading', train_epoch_num, suffix+' Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
+            wandb_log_images(wandb, predicted_corrected_shading, mask, suffix+' Predicted Corrected Shading', train_epoch_num, suffix+' Predicted Corrected Shading', path=file_name + '_predicted_corrected_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_face, mask, suffix+' Predicted face', train_epoch_num, suffix+' Predicted face', path=file_name + '_predicted_face.png', denormalize=False)
             wandb_log_images(wandb, face, mask, suffix+' Ground Truth', train_epoch_num, suffix+' Ground Truth', path=file_name + '_gt_face.png')
             wandb_log_images(wandb, normal, mask, suffix+' Ground Truth Normal', train_epoch_num, suffix+' Ground Normal', path=file_name + '_gt_normal.png')
@@ -233,9 +235,8 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
            
             # Apply Mask on input image
             # face = applyMask(face, mask)
-            predicted_normal, predicted_albedo, predicted_sh, out_shading, out_recon = sfs_net_model(face)
+            predicted_normal, predicted_albedo, predicted_sh, out_shading, predicted_corrected_shading, out_recon = sfs_net_model(face)
             
-
             # Loss computation
             # Normal loss
             current_normal_loss = normal_loss(predicted_normal, normal)
@@ -272,18 +273,23 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
 
         print('Epoch: {} - Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}'.format(epoch, tloss, \
                                                                                                     nloss, aloss, shloss, rloss))
+        log_prefix = 'Syn Data'
+        if celeba_data is not None:
+            log_prefix = 'Mix Data '
+
         if epoch % 1 == 0:
             print('Training set results: Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}'.format(tloss / syn_train_len, \
                     nloss / syn_train_len, aloss / syn_train_len, shloss / syn_train_len, rloss / syn_train_len))
             # Log training info
-            wandb.log({'Train Total loss': tloss/syn_train_len, 'Train Albedo loss': aloss/syn_train_len, 'Train Normal loss': nloss/syn_train_len, \
-                        'Train SH loss': shloss/syn_train_len, 'Train Recon loss': rloss/syn_train_len}, step=epoch)
+            wandb.log({log_prefix + 'Train Total loss': tloss/syn_train_len, log_prefix + 'Train Albedo loss': aloss/syn_train_len, log_prefix + 'Train Normal loss': nloss/syn_train_len, \
+                       log_prefix + 'Train SH loss': shloss/syn_train_len, log_prefix + 'Train Recon loss': rloss/syn_train_len})
             
             # Log images in wandb
             file_name = out_syn_images_dir + 'train/' +  'train_' + str(epoch)
             wandb_log_images(wandb, predicted_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, out_shading, mask, 'Train Predicted Shading', epoch, 'Train Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
+            wandb_log_images(wandb, predicted_corrected_shading, mask, 'Train Predicted Corrected Shading', epoch, 'Train Predicted Corrected Shading', path=file_name + '_predicted_corrected_shading.png', denormalize=False)
             wandb_log_images(wandb, out_recon, mask, 'Train Recon', epoch, 'Train Recon', path=file_name + '_predicted_face.png')
             wandb_log_images(wandb, face, mask, 'Train Ground Truth', epoch, 'Train Ground Truth', path=file_name + '_gt_face.png')
             wandb_log_images(wandb, normal, mask, 'Train Ground Truth Normal', epoch, 'Train Ground Truth Normal', path=file_name + '_gt_normal.png')
@@ -296,6 +302,9 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
 
             v_total, v_normal, v_albedo, v_sh, v_recon = predict_sfsnet(sfs_net_model, syn_val_dl, train_epoch_num=epoch, use_cuda=use_cuda,
                                                                          out_folder=out_syn_images_dir+'/val/', wandb=wandb)
+            wandb.log({log_prefix + 'Val Total loss': v_total, log_prefix + 'Val Albedo loss': v_albedo, log_prefix + 'Val Normal loss': v_normal, \
+                        log_prefix + 'Val SH loss': v_sh, log_prefix + 'Val Recon loss': v_recon})
+            
 
             print('Val set results: Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}'.format(v_total,
                     v_normal, v_albedo, v_sh, v_recon))
@@ -305,6 +314,9 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         if epoch % 5 == 0:
             t_total, t_normal, t_albedo, t_sh, t_recon = predict_sfsnet(sfs_net_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
                                                                         out_folder=out_syn_images_dir + '/test/', wandb=wandb)
+
+            wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Normal loss': t_normal, \
+                       log_prefix+ 'Test SH loss': t_sh, log_prefix+'Test Recon loss': t_recon})
 
             print('Test-set results: Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}\n'.format(t_total,
                                                                                                     t_normal, t_albedo, t_sh, t_recon))

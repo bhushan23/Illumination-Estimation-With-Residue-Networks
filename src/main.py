@@ -38,6 +38,9 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--read_first', type=int, default=-1,
                         help='read first n rows (default: -1)')
+    parser.add_argument('--details', type=str, default=None,
+                        help='Explaination of the run')
+
     if ON_SERVER:
         parser.add_argument('--syn_data', type=str, default='/nfs/bigdisk/bsonawane/sfsnet_data/',
                         help='Synthetic Dataset path')
@@ -80,7 +83,7 @@ def main():
     # return 
 
     # Init WandB for logging
-    wandb.init(project='SfSNet-CelebA-Baseline-Exp-1')
+    wandb.init(project='SfSNet-CelebA-Shader-Correcting-Net')
     wandb.log({'lr':lr, 'weight decay': wt_decay})
 
     # Initialize models
@@ -92,10 +95,12 @@ def main():
     albedo_gen_model      = AlbedoGenerationNet()
     shading_model         = sfsNetShading()
     image_recon_model     = ReconstructImage()
+    neural_light_model    = NeuralLatentLightEstimator()
+    shading_correctness_model = ShadingCorrectNess()
     
     sfs_net_model      = SfsNetPipeline(conv_model, normal_residual_model, albedo_residual_model, \
                                             light_estimator_model, normal_gen_model, albedo_gen_model, \
-                                            shading_model, image_recon_model)
+                                            shading_model, neural_light_model, shading_correctness_model, image_recon_model)
     if use_cuda:
         sfs_net_model = sfs_net_model.cuda()
 
@@ -104,6 +109,10 @@ def main():
     else:
         print('Initializing weights')
         sfs_net_model.apply(weights_init)
+
+    os.system('mkdir -p {}'.format(args.log_dir))
+    with open(args.log_dir+'/details.txt', 'w') as f:
+        f.write(args.details)
 
     wandb.watch(sfs_net_model)
     # 1. Train on Synthetic data
