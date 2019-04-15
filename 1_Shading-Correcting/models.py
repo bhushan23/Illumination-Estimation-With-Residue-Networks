@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils import denorm
-
 class sfsNetShading(nn.Module):
     def __init__(self):
         super(sfsNetShading, self).__init__()
@@ -281,13 +279,13 @@ class SfsNetPipeline(nn.Module):
         predicted_neural_light = self.neural_light_model(all_features)
 
         # 4. Generate shading
-        out_shading = self.shading_model(denorm(predicted_normal), predicted_sh)
+        out_shading = self.shading_model(predicted_normala, predicted_sh)
 
         # 5. Correct shading with Neural Light
         shading_light = torch.cat((out_shading, predicted_neural_light), dim=1)
         corrected_shading = self.shading_correctness_model(shading_light)
 
         # 6. Reconstruction of image
-        out_recon = self.image_recon_model(corrected_shading, denorm(predicted_albedo))
+        out_recon = self.image_recon_model(corrected_shading, predicted_albedo)
                     
         return predicted_normal, predicted_albedo, predicted_sh, out_shading, corrected_shading, out_recon

@@ -207,7 +207,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     lamda_recon  = 0.5
     lamda_albedo = 0.5
     lamda_normal = 0.5
-    lamda_sh     = 0.1
+    lamda_sh     = 0.4
 
     if use_cuda:
         normal_loss = normal_loss.cuda()
@@ -249,18 +249,12 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Hence, denormalizing face here
             current_recon_loss  = recon_loss(out_recon, face)
 
-            total_loss = lamda_normal * current_normal_loss \
-                            + lamda_albedo * current_albedo_loss + lamda_sh * current_sh_loss
-
             # if celeba_data is not None:
             total_loss = lamda_normal * current_normal_loss + lamda_albedo * current_albedo_loss + \
                          lamda_sh * current_sh_loss + lamda_recon * current_recon_loss 
-            # else:
-            #     total_loss = current_normal_loss \
-            #                  + current_albedo_loss + current_sh_loss
 
             optimizer.zero_grad()
-            total_loss.backward(retain_graph=True)
+            total_loss.backward()
             optimizer.step()
 
             # Logging for display and debugging purposes
@@ -431,7 +425,7 @@ def train_syn_celeba_both(sfs_net_model, syn_data, celeba_data,
                 # Reconstruction loss
                 # Edge case: Shading generation requires denormalized normal and sh
                 # Hence, denormalizing face here
-                current_recon_loss  = recon_loss(out_recon, denorm(face))
+                current_recon_loss  = recon_loss(out_recon, face)
 
                 total_loss = lamda_recon * current_recon_loss + lamda_normal * current_normal_loss \
                                 + lamda_albedo * current_albedo_loss + lamda_sh * current_sh_loss
@@ -465,7 +459,7 @@ def train_syn_celeba_both(sfs_net_model, syn_data, celeba_data,
                 # Reconstruction loss
                 # Edge case: Shading generation requires denormalized normal and sh
                 # Hence, denormalizing face here
-                crecon_loss = c_recon_loss(c_out_recon, denorm(c_face))
+                crecon_loss = c_recon_loss(c_out_recon, c_face)
 
                 optimizer.zero_grad()
                 crecon_loss.backward()
