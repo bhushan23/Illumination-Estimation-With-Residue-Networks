@@ -252,13 +252,12 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             total_loss = lamda_normal * current_normal_loss \
                             + lamda_albedo * current_albedo_loss + lamda_sh * current_sh_loss
 
-            if celeba_data is not None:
-                total_loss = lamda_normal * current_normal_loss \
-                            + lamda_albedo * current_albedo_loss + lamda_sh * current_sh_loss
-                total_loss += lamda_recon * current_recon_loss 
-            else:
-                total_loss = current_normal_loss \
-                             + current_albedo_loss + current_sh_loss
+            # if celeba_data is not None:
+            total_loss = lamda_normal * current_normal_loss + lamda_albedo * current_albedo_loss + \
+                         lamda_sh * current_sh_loss + lamda_recon * current_recon_loss 
+            # else:
+            #     total_loss = current_normal_loss \
+            #                  + current_albedo_loss + current_sh_loss
 
             optimizer.zero_grad()
             total_loss.backward(retain_graph=True)
