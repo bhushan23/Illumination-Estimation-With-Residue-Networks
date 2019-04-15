@@ -279,7 +279,7 @@ class SfsNetPipeline(nn.Module):
         predicted_neural_light = self.neural_light_model(all_features)
 
         # 4. Generate shading
-        out_shading = self.shading_model(predicted_normala, predicted_sh)
+        out_shading = self.shading_model(predicted_normal, predicted_sh)
 
         # 5. Correct shading with Neural Light
         shading_light = torch.cat((out_shading, predicted_neural_light), dim=1)
