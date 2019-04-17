@@ -218,10 +218,13 @@ class ShadingCorrectNess(nn.Module):
     """
     def __init__(self):
         super(ShadingCorrectNess, self).__init__()
-        self.conv1 = get_conv(6, 3, kernel_size=3, padding=1)
+        # self.conv1 = get_conv(6, 3, kernel_size=3, padding=1)
+        self.conv1 = get_conv(6, 64, kernel_size=1, padding=0)
+        self.conv2 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
 
     def forward(self, x):
         out = self.conv1(x)
+        out = self.conv2(out)
         return out
 
 class ReconstructImage(nn.Module):
