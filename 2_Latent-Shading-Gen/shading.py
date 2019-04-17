@@ -7,7 +7,6 @@ from torchvision import transforms
 import pandas as pd
 
 from utils import *
-from models import sfsNetShading
 
 # def var(x):
 #     if torch.cuda.is_available():

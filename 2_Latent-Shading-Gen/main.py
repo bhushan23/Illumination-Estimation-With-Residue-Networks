@@ -21,7 +21,7 @@ from train import *
 from models import *
 
 def main():
-    ON_SERVER = False
+    ON_SERVER = True
 
     parser = argparse.ArgumentParser(description='SfSNet - Residual')
     parser.add_argument('--batch_size', type=int, default=8, metavar='N',
@@ -83,7 +83,7 @@ def main():
     # return 
 
     # Init WandB for logging
-    wandb.init(project='SfSNet-CelebA-Shader-Correcting-Net')
+    wandb.init(project='SfSNet-CelebA-Latent-Shading-Gen')
     wandb.log({'lr':lr, 'weight decay': wt_decay})
 
     # Initialize models
@@ -92,12 +92,13 @@ def main():
     albedo_residual_model = AlbedoResidualBlock()
     normal_gen_model      = NormalGenerationNet()
     albedo_gen_model      = AlbedoGenerationNet()
-    shading_model         = sfsNetShading()
+    shading_trad_model    = sfsNetShading()
+    shading_model         = ShadingGeneration()
     image_recon_model     = ReconstructImage()
     neural_light_model    = NeuralLatentLightEstimator()
     
     sfs_net_model      = SfsNetPipeline(conv_model, normal_residual_model, albedo_residual_model, \
-                                            normal_gen_model, albedo_gen_model, \
+                                            normal_gen_model, albedo_gen_model, shading_trad_model, \
                                             shading_model, neural_light_model, image_recon_model)
     if use_cuda:
         sfs_net_model = sfs_net_model.cuda()

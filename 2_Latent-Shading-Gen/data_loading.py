@@ -229,7 +229,7 @@ def generate_celeba_synthesize(sfs_net_model, dl, train_epoch_num = 0,
             face   = face.cuda()
         
         # predicted_face == reconstruction
-        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, predicted_face = sfs_net_model(face)
+        predicted_normal, predicted_albedo, predicted_shading, predicted_face = sfs_net_model(face)
         
         # save predictions in log folder
         file_name = out_folder + str(train_epoch_num) + '_' + str(bix)
