@@ -113,13 +113,15 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
             # save predictions in log folder
             file_name = out_folder + suffix + '_' + str(train_epoch_num) + '_' + str(fix_bix_dump)
             # log images
-            wandb_log_images(wandb, predicted_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
+            save_p_normal = get_normal_in_range(predicted_normal)
+            save_gt_normal = get_normal_in_range(normal)
+            wandb_log_images(wandb, save_p_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, suffix +' Predicted Albedo', train_epoch_num, suffix+' Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, predicted_shading, mask, suffix+' Predicted Shading', train_epoch_num, suffix+' Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_corrected_shading, mask, suffix+' Predicted Corrected Shading', train_epoch_num, suffix+' Predicted Corrected Shading', path=file_name + '_predicted_corrected_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_face, mask, suffix+' Predicted face', train_epoch_num, suffix+' Predicted face', path=file_name + '_predicted_face.png', denormalize=False)
             wandb_log_images(wandb, face, mask, suffix+' Ground Truth', train_epoch_num, suffix+' Ground Truth', path=file_name + '_gt_face.png')
-            wandb_log_images(wandb, normal, mask, suffix+' Ground Truth Normal', train_epoch_num, suffix+' Ground Normal', path=file_name + '_gt_normal.png')
+            wandb_log_images(wandb, save_gt_normal, mask, suffix+' Ground Truth Normal', train_epoch_num, suffix+' Ground Normal', path=file_name + '_gt_normal.png')
             wandb_log_images(wandb, albedo, mask, suffix+' Ground Truth Albedo', train_epoch_num, suffix+' Ground Albedo', path=file_name + '_gt_albedo.png')
             # Get face with real SH
             real_sh_face = sfs_net_model.get_face(sh, predicted_normal, predicted_albedo)
@@ -176,7 +178,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     test_dataset, _ = get_sfsnet_dataset(syn_dir=syn_data+'test/', read_from_csv=syn_test_csv, read_celeba_csv=celeba_test_csv, read_first=100, validation_split=0)
 
     syn_train_dl  = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    syn_val_dl    = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    syn_val_dl    = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
     syn_test_dl   = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     print('Synthetic dataset: Train data: ', len(syn_train_dl), ' Val data: ', len(syn_val_dl), ' Test data: ', len(syn_test_dl))
@@ -279,13 +281,15 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             
             # Log images in wandb
             file_name = out_syn_images_dir + 'train/' +  'train_' + str(epoch)
-            wandb_log_images(wandb, predicted_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
+            save_p_normal = get_normal_in_range(predicted_normal)
+            save_gt_normal = get_normal_in_range(normal)
+            wandb_log_images(wandb, save_p_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, out_shading, mask, 'Train Predicted Shading', epoch, 'Train Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_corrected_shading, mask, 'Train Predicted Corrected Shading', epoch, 'Train Predicted Corrected Shading', path=file_name + '_predicted_corrected_shading.png', denormalize=False)
             wandb_log_images(wandb, out_recon, mask, 'Train Recon', epoch, 'Train Recon', path=file_name + '_predicted_face.png')
             wandb_log_images(wandb, face, mask, 'Train Ground Truth', epoch, 'Train Ground Truth', path=file_name + '_gt_face.png')
-            wandb_log_images(wandb, normal, mask, 'Train Ground Truth Normal', epoch, 'Train Ground Truth Normal', path=file_name + '_gt_normal.png')
+            wandb_log_images(wandb, save_gt_normal, mask, 'Train Ground Truth Normal', epoch, 'Train Ground Truth Normal', path=file_name + '_gt_normal.png')
             wandb_log_images(wandb, albedo, mask, 'Train Ground Truth Albedo', epoch, 'Train Ground Truth Albedo', path=file_name + '_gt_albedo.png')
             # Get face with real_sh, predicted normal and albedo for debugging
             real_sh_face = sfs_net_model.get_face(sh, predicted_normal, predicted_albedo)
