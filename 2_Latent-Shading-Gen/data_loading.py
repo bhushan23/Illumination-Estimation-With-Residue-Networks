@@ -239,7 +239,6 @@ def generate_celeba_synthesize(sfs_net_model, dl, train_epoch_num = 0,
         save_image(predicted_shading, path = file_name+'_shading.png')
         save_image(predicted_face, path = file_name+'_recon.png')
         save_image(face, path = file_name+'_face.png')
-        np.savetxt(file_name+'_light.txt', predicted_sh.cpu().detach().numpy(), delimiter='\t')
         
         # Loss computation
         # Reconstruction loss

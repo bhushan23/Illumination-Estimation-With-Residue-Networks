@@ -49,13 +49,16 @@ def interpolate(model_dir, input_path, output_path):
     if use_cuda:
       data = data.cuda()
 
-    normal, albedo, sh, shading, recon = sfs_net_model(data)
+    normal, albedo, sh, shading, corrected_shading, recon = sfs_net_model(data)
     output_dir = output_path + str(bix)
-
+    
+    normal = normal * 128 + 128
+    normal = normal.clamp(0, 255) / 255
     save_image(data, path=output_dir+'_face.png')
     save_image(normal, path=output_dir+'_normal.png')
     save_image(albedo, path=output_dir+'_albedo.png')
-    save_image(shading, path=output_dir+'_shading.png')
+    save_image(corrected_shading, path=output_dir+'_shading.png')
+    save_image(shading, path=output_dir+'_corrected_shading.png')
     save_image(recon, path=output_dir+'_recon.png')
     sh = sh.cpu().detach().numpy()
     np.savetxt(output_dir+'_light.txt', sh, delimiter='\t')

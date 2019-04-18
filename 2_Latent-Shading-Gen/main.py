@@ -114,11 +114,12 @@ def main():
         f.write(args.details)
 
     wandb.watch(sfs_net_model)
+    '''
     # 1. Train on Synthetic data
     train(sfs_net_model, syn_data, celeba_data = None, read_first=read_first, \
             batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Synthetic_Train/', use_cuda=use_cuda, wandb=wandb, \
             lr=lr, wt_decay=wt_decay)
-    
+    '''
     # 2. Generate Pseudo-Training information for CelebA dataset
     # Load CelebA dataset
     celeba_train_csv = celeba_data + '/train.csv'
