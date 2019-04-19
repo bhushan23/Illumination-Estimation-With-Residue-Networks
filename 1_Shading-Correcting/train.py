@@ -310,7 +310,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
         if epoch % 5 == 0:
             t_total, t_normal, t_albedo, t_sh, t_recon = predict_sfsnet(sfs_net_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
-                                                                        out_folder=out_syn_images_dir + '/test/', wandb=wandb)
+                                                                        out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='Test')
 
             wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Normal loss': t_normal, \
                        log_prefix+ 'Test SH loss': t_sh, log_prefix+'Test Recon loss': t_recon})

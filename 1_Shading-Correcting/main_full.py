@@ -96,10 +96,13 @@ def main():
     albedo_gen_model      = AlbedoGenerationNet()
     shading_model         = sfsNetShading()
     image_recon_model     = ReconstructImage()
+    neural_light_model    = NeuralLatentLightEstimator()
+    shading_correctness_model = ShadingCorrectNess()
     
     sfs_net_model      = SfsNetPipeline(conv_model, normal_residual_model, albedo_residual_model, \
                                             light_estimator_model, normal_gen_model, albedo_gen_model, \
-                                            shading_model, image_recon_model)
+                                            shading_model, neural_light_model, shading_correctness_model, image_recon_model)
+ 
     if use_cuda:
         sfs_net_model = sfs_net_model.cuda()
 
