@@ -111,12 +111,14 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
             # save predictions in log folder
             file_name = out_folder + suffix + '_' + str(train_epoch_num) + '_' + str(fix_bix_dump)
             # log images
-            wandb_log_images(wandb, predicted_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
+            save_p_normal = get_normal_in_range(predicted_normal)
+            save_gt_normal = get_normal_in_range(normal)
+            wandb_log_images(wandb, save_p_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, suffix +' Predicted Albedo', train_epoch_num, suffix+' Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, predicted_shading, mask, suffix+' Predicted Shading', train_epoch_num, suffix+' Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_face, mask, suffix+' Predicted face', train_epoch_num, suffix+' Predicted face', path=file_name + '_predicted_face.png', denormalize=False)
             wandb_log_images(wandb, face, mask, suffix+' Ground Truth', train_epoch_num, suffix+' Ground Truth', path=file_name + '_gt_face.png')
-            wandb_log_images(wandb, normal, mask, suffix+' Ground Truth Normal', train_epoch_num, suffix+' Ground Normal', path=file_name + '_gt_normal.png')
+            wandb_log_images(wandb, save_gt_normal, mask, suffix+' Ground Truth Normal', train_epoch_num, suffix+' Ground Normal', path=file_name + '_gt_normal.png')
             wandb_log_images(wandb, albedo, mask, suffix+' Ground Truth Albedo', train_epoch_num, suffix+' Ground Albedo', path=file_name + '_gt_albedo.png')
             # Get face with real SH
             real_sh_face = sfs_net_model.get_face(sh, predicted_normal, predicted_albedo)
@@ -269,12 +271,14 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             
             # Log images in wandb
             file_name = out_syn_images_dir + 'train/' +  'train_' + str(epoch)
-            wandb_log_images(wandb, predicted_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
+            save_p_normal = get_normal_in_range(predicted_normal)
+            save_gt_normal = get_normal_in_range(normal)
+            wandb_log_images(wandb, save_p_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, out_shading, mask, 'Train Predicted Shading', epoch, 'Train Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
             wandb_log_images(wandb, out_recon, mask, 'Train Recon', epoch, 'Train Recon', path=file_name + '_predicted_face.png')
             wandb_log_images(wandb, face, mask, 'Train Ground Truth', epoch, 'Train Ground Truth', path=file_name + '_gt_face.png')
-            wandb_log_images(wandb, normal, mask, 'Train Ground Truth Normal', epoch, 'Train Ground Truth Normal', path=file_name + '_gt_normal.png')
+            wandb_log_images(wandb, save_gt_normal, mask, 'Train Ground Truth Normal', epoch, 'Train Ground Truth Normal', path=file_name + '_gt_normal.png')
             wandb_log_images(wandb, albedo, mask, 'Train Ground Truth Albedo', epoch, 'Train Ground Truth Albedo', path=file_name + '_gt_albedo.png')
             # Get face with real_sh, predicted normal and albedo for debugging
             real_sh_face = sfs_net_model.get_face(sh, predicted_normal, predicted_albedo)
@@ -295,7 +299,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
         if epoch % 5 == 0:
             t_total, t_normal, t_albedo, t_recon = predict_sfsnet(sfs_net_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
-                                                                        out_folder=out_syn_images_dir + '/test/', wandb=wandb)
+                                                                        out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='Test')
 
             wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Normal loss': t_normal, \
                        log_prefix+'Test Recon loss': t_recon})
