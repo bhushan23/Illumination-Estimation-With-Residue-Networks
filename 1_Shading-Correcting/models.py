@@ -61,8 +61,7 @@ def get_conv(in_channels, out_channels, kernel_size=3, padding=0, stride=1, drop
         nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, 
                     padding=padding, bias=False),
         nn.BatchNorm2d(out_channels),
-        nn.ReLU(inplace=True),
-        nn.Dropout(dropout)
+        nn.ReLU(inplace=True)
     )
 
 # SfSNet Models
@@ -182,8 +181,8 @@ class LightEstimator(nn.Module):
     """
     def __init__(self):
         super(LightEstimator, self).__init__()
-        self.conv1 = nn.Conv2d(384, 128, kernel_size=1)
-        self.pool  = nn.AvgPool2d(64) 
+        self.conv1 = get_conv(384, 128, kernel_size=1, stride=1)
+        self.pool  = nn.AvgPool2d(64, stride=1,padding=0) 
         self.fc    = nn.Linear(128, 27)
 
     def forward(self, x):
@@ -290,5 +289,5 @@ class SfsNetPipeline(nn.Module):
 
         # 6. Reconstruction of image
         out_recon = self.image_recon_model(corrected_shading, predicted_albedo)
-                    
+
         return predicted_normal, predicted_albedo, predicted_sh, out_shading, corrected_shading, out_recon
