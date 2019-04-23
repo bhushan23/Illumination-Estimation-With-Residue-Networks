@@ -51,6 +51,8 @@ def interpolate(model_dir, input_path, output_path):
     normal, albedo, shading, recon = sfs_net_model(data)
     output_dir = output_path + str(bix)
 
+    normal = normal * 128 + 128
+    normal = normal.clamp(0, 255) / 255
     save_image(data, path=output_dir+'_face.png')
     save_image(normal, path=output_dir+'_normal.png')
     save_image(albedo, path=output_dir+'_albedo.png')
