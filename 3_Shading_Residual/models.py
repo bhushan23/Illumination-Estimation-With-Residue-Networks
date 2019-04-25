@@ -245,6 +245,26 @@ class LightEstimator(nn.Module):
         out = self.fc(out)
         return out
 
+class ShadingResidualEstimator(nn.Module):
+    """ Estimate Shading Residual from normal, albedo and conv features
+    """
+    def __init__(self):
+        super(ShadingResidualEstimator, self).__init__()
+        self.upsample = nn.UpsamplingBilinear2d(size=(128, 128), scale_factor=None)
+        self.conv1    = get_conv(384, 128, kernel_size=1, stride=1)
+        self.conv2    = get_conv(128, 64, kernel_size=1, stride=1)
+        self.conv3    = get_conv(64, 64, kernel_size=3, padding=1)
+        self.conv4    = nn.Conv2d(64, 3, kernel_size=1)
+
+    def forward(self, x):
+        out = self.upsample(x)
+        out = self.conv1(out)
+        out = self.conv2(out)
+        out = self.conv3(out)
+        out = self.conv4(out)
+        return out
+
+
 def reconstruct_image(shading, albedo):
     return shading * albedo
         
@@ -253,13 +273,13 @@ class SfsNetPipeline(nn.Module):
     """
     def __init__(self):
         super(SfsNetPipeline, self).__init__()
-
         self.conv_model            = baseFeaturesExtractions()
         self.normal_residual_model = NormalResidualBlock()
         self.normal_gen_model      = NormalGenerationNet()
         self.albedo_residual_model = AlbedoResidualBlock()
         self.albedo_gen_model      = AlbedoGenerationNet()
         self.light_estimator_model = LightEstimator()
+        self.shading_residual_model = ShadingResidualEstimator()
 
     def get_face(self, sh, normal, albedo):
         shading = get_shading(normal, sh)
@@ -289,11 +309,31 @@ class SfsNetPipeline(nn.Module):
         # 4. Generate shading
         out_shading = get_shading(predicted_normal, predicted_sh)
 
-        # 5. Reconstruction of image
-        out_recon = reconstruct_image(out_shading, predicted_albedo)
+        # 5. Get Shading Residual
+        shading_residual = self.shading_residual_model(all_features)
+        updated_shading = out_shading + shading_residual
+
+        # 6. Reconstruction of image
+        out_recon = reconstruct_image(updated_shading, predicted_albedo)
 
         return predicted_normal, predicted_albedo, predicted_sh, out_shading, out_recon
+    
+    def fix_weights(self):
+        dfs_freeze(self.conv_model)
+        dfs_freeze(self.normal_residual_model)
+        dfs_freeze(self.normal_gen_model)
+        dfs_freeze(self.albedo_residual_model)
+        dfs_freeze(self.light_estimator_model)
+        # Note that we are not freezing Albedo gen model
 
+
+# Use following to fix weights of the model
+# Ref - https://discuss.pytorch.org/t/how-the-pytorch-freeze-network-in-some-layers-only-the-rest-of-the-training/7088/15
+def dfs_freeze(model):
+    for name, child in model.named_children():
+        for param in child.parameters():
+            param.requires_grad = False
+        dfs_freeze(child)
 
 # Following method loads author provided model weights
 # Refer to model_loading_synchronization to getf following mapping
@@ -477,4 +517,3 @@ def load_model_from_pretrained(src_model, dst_model):
     dst_model['light_estimator_model.conv1.1.running_var'] = src_model['lconv.conv.1.running_var']
     dst_model['light_estimator_model.fc.weight'] = src_model['lout.weight']
     dst_model['light_estimator_model.fc.bias'] = src_model['lout.bias']
-    return dst_model
