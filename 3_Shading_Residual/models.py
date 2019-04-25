@@ -316,7 +316,7 @@ class SfsNetPipeline(nn.Module):
         # 6. Reconstruction of image
         out_recon = reconstruct_image(updated_shading, predicted_albedo)
 
-        return predicted_normal, predicted_albedo, predicted_sh, out_shading, out_recon
+        return predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon
     
     def fix_weights(self):
         dfs_freeze(self.conv_model)

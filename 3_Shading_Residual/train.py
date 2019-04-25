@@ -73,26 +73,18 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
     # debugging flag to dump image
     fix_bix_dump = 0
 
-    normal_loss = nn.L1Loss()
     albedo_loss = nn.L1Loss()
-    sh_loss     = nn.MSELoss()
     recon_loss  = nn.L1Loss() 
 
     lamda_recon  = 0.5
     lamda_albedo = 0.5
-    lamda_normal = 0.5
-    lamda_sh     = 0.1
 
     if use_cuda:
-        normal_loss = normal_loss.cuda()
         albedo_loss = albedo_loss.cuda()
-        sh_loss     = sh_loss.cuda()
         recon_loss  = recon_loss.cuda()
 
     tloss = 0 # Total loss
-    nloss = 0 # Normal loss
     aloss = 0 # Albedo loss
-    shloss = 0 # SH loss
     rloss = 0 # Reconstruction loss
     for bix, data in enumerate(dl):
         albedo, normal, mask, sh, face = data
@@ -106,18 +98,21 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
         # Apply Mask on input image
         # face = applyMask(face, mask)
         # predicted_face == reconstruction
-        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, predicted_face = sfs_net_model(face)
+        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, shading_residual, updated_shading, predicted_face = sfs_net_model(face)
 
         if bix == fix_bix_dump:
             # save predictions in log folder
             file_name = out_folder + suffix + '_' + str(train_epoch_num) + '_' + str(fix_bix_dump)
             # log images
-            save_p_normal = get_normal_in_range(predicted_normal)
+            # save_p_normal = get_normal_in_range(predicted_normal)
             save_gt_normal = get_normal_in_range(normal)
+            save_p_normal = predicted_normal
 
             wandb_log_images(wandb, save_p_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, suffix +' Predicted Albedo', train_epoch_num, suffix+' Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, predicted_shading, mask, suffix+' Predicted Shading', train_epoch_num, suffix+' Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
+            wandb_log_images(wandb, shading_residual, mask, suffix+' Predicted Shading Residual', train_epoch_num, suffix+' Predicted Shading Residual', path=file_name + '_predicted_residual_shading.png', denormalize=False)
+            wandb_log_images(wandb, updated_shading, mask, suffix+' Predicted Updated Shading', train_epoch_num, suffix+' Predicted Updated Shading', path=file_name + '_predicted_updated_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_face, mask, suffix+' Predicted face', train_epoch_num, suffix+' Predicted face', path=file_name + '_predicted_face.png', denormalize=False)
             wandb_log_images(wandb, face, mask, suffix+' Ground Truth', train_epoch_num, suffix+' Ground Truth', path=file_name + '_gt_face.png')
             wandb_log_images(wandb, save_gt_normal, mask, suffix+' Ground Truth Normal', train_epoch_num, suffix+' Ground Normal', path=file_name + '_gt_normal.png')
@@ -133,30 +128,26 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
         
         # Loss computation
         # Normal loss
-        current_normal_loss = normal_loss(predicted_normal, normal)
+        # current_normal_loss = normal_loss(predicted_normal, normal)
         # Albedo loss
         current_albedo_loss = albedo_loss(predicted_albedo, albedo)
         # SH loss
-        current_sh_loss     = sh_loss(predicted_sh, sh)
+        # current_sh_loss     = sh_loss(predicted_sh, sh)
         # Reconstruction loss
         current_recon_loss  = recon_loss(predicted_face, face)
 
-        total_loss = lamda_recon * current_recon_loss + lamda_normal * current_normal_loss \
-                        + lamda_albedo * current_albedo_loss + lamda_sh * current_sh_loss
+        total_loss = lamda_recon * current_recon_loss + lamda_albedo * current_albedo_loss
 
         # Logging for display and debugging purposes
         tloss += total_loss.item()
-        nloss += current_normal_loss.item()
         aloss += current_albedo_loss.item()
-        shloss += current_sh_loss.item()
         rloss += current_recon_loss.item()
     
     len_dl = len(dl)
-    wandb.log({suffix+' Total loss': tloss/len_dl, 'Val Albedo loss': aloss/len_dl, 'Val Normal loss': nloss/len_dl, \
-               'Val SH loss': shloss/len_dl, 'Val Recon loss': rloss/len_dl}, step=train_epoch_num)
+    wandb.log({suffix+' Total loss': tloss/len_dl, 'Val Albedo loss': aloss/len_dl, 'Val Recon loss': rloss/len_dl}, step=train_epoch_num)
             
     # return average loss over dataset
-    return tloss / len_dl, nloss / len_dl, aloss / len_dl, shloss / len_dl, rloss / len_dl
+    return tloss / len_dl, aloss / len_dl, rloss / len_dl
 
 def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
           batch_size = 10, num_epochs = 10, log_path = './results/metadata/', use_cuda=False, wandb=None,
@@ -194,35 +185,25 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     # Collect model parameters
     model_parameters = sfs_net_model.parameters()
     optimizer = torch.optim.Adam(model_parameters, lr=lr, weight_decay=wt_decay)
-    normal_loss = nn.L1Loss()
     albedo_loss = nn.L1Loss()
-    sh_loss     = nn.MSELoss(reduction='sum')
     recon_loss  = nn.L1Loss() 
 
     if use_cuda:
-        normal_loss = normal_loss.cuda()
         albedo_loss = albedo_loss.cuda()
-        sh_loss     = sh_loss.cuda()
         recon_loss  = recon_loss.cuda()
 
     lamda_recon  = 0.5
     lamda_albedo = 0.5
-    lamda_normal = 0.5
-    lamda_sh     = 0.1
 
     if use_cuda:
-        normal_loss = normal_loss.cuda()
         albedo_loss = albedo_loss.cuda()
-        sh_loss     = sh_loss.cuda()
         recon_loss  = recon_loss.cuda()
 
     syn_train_len    = len(syn_train_dl)
 
     for epoch in range(1, num_epochs+1):
         tloss = 0 # Total loss
-        nloss = 0 # Normal loss
         aloss = 0 # Albedo loss
-        shloss = 0 # SH loss
         rloss = 0 # Reconstruction loss
 
         for bix, data in enumerate(syn_train_dl):
@@ -236,7 +217,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
            
             # Apply Mask on input image
             # face = applyMask(face, mask)
-            predicted_normal, predicted_albedo, predicted_sh, out_shading, out_recon = sfs_net_model(face)
+            predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon = sfs_net_model(face)
             
             # Loss computation
             # Normal loss
@@ -263,28 +244,27 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # shloss += current_sh_loss.item()
             rloss += current_recon_loss.item()
 
-        print('Epoch: {} - Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}'.format(epoch, tloss, \
-                                                                                                    nloss, aloss, shloss, rloss))
+        print('Epoch: {} - Total Loss: {}, Albedo Loss: {}, Recon Loss: {}'.format(epoch, tloss, aloss, rloss))
         log_prefix = 'Syn Data'
         if celeba_data is not None:
             log_prefix = 'Mix Data '
 
         if epoch % 1 == 0:
-            print('Training set results: Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}'.format(tloss / syn_train_len, \
-                    nloss / syn_train_len, aloss / syn_train_len, shloss / syn_train_len, rloss / syn_train_len))
+            print('Training set results: Total Loss: {}, Albedo Loss: {}, Recon Loss: {}'.format(tloss / syn_train_len, \
+                   aloss / syn_train_len, rloss / syn_train_len))
             # Log training info
-            wandb.log({log_prefix + 'Train Total loss': tloss/syn_train_len, log_prefix + 'Train Albedo loss': aloss/syn_train_len, log_prefix + 'Train Normal loss': nloss/syn_train_len, \
-                       log_prefix + 'Train SH loss': shloss/syn_train_len, log_prefix + 'Train Recon loss': rloss/syn_train_len})
+            wandb.log({log_prefix + 'Train Total loss': tloss/syn_train_len, log_prefix + 'Train Albedo loss': aloss/syn_train_len, log_prefix + 'Train Recon loss': rloss/syn_train_len})
             
             # Log images in wandb
             file_name = out_syn_images_dir + 'train/' +  'train_' + str(epoch)
             # save_p_normal = get_normal_in_range(predicted_normal)
-            # save_gt_normal = get_normal_in_range(normal)
+            save_gt_normal = get_normal_in_range(normal)
             save_p_normal = predicted_normal
-            save_gt_normal = normal
             wandb_log_images(wandb, save_p_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
             wandb_log_images(wandb, out_shading, mask, 'Train Predicted Shading', epoch, 'Train Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
+            wandb_log_images(wandb, shading_residual, mask, 'Train Predicted Shading Residual', epoch, 'Train Predicted Shading Residual', path=file_name + '_predicted_residual_shading.png', denormalize=False)
+            wandb_log_images(wandb, updated_shading, mask, 'Train Predicted Updated Shading', epoch, 'Train Predicted Updated Shading', path=file_name + '_predicted_updated_shading.png', denormalize=False)
             wandb_log_images(wandb, out_recon, mask, 'Train Recon', epoch, 'Train Recon', path=file_name + '_predicted_face.png')
             wandb_log_images(wandb, face, mask, 'Train Ground Truth', epoch, 'Train Ground Truth', path=file_name + '_gt_face.png')
             wandb_log_images(wandb, save_gt_normal, mask, 'Train Ground Truth Normal', epoch, 'Train Ground Truth Normal', path=file_name + '_gt_normal.png')
@@ -295,23 +275,19 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             wandb_log_images(wandb, real_sh_face, mask, 'Train Real SH Predicted Face', epoch, 'Train Real SH Predicted Face', path=file_name + '_real_sh_face.png')
             wandb_log_images(wandb, syn_face, mask, 'Train Real SH GT Face', epoch, 'Train Real SH GT Face', path=file_name + '_syn_gt_face.png')
 
-            v_total, v_normal, v_albedo, v_sh, v_recon = predict_sfsnet(sfs_net_model, syn_val_dl, train_epoch_num=epoch, use_cuda=use_cuda,
+            v_total, v_albedo, v_recon = predict_sfsnet(sfs_net_model, syn_val_dl, train_epoch_num=epoch, use_cuda=use_cuda,
                                                                          out_folder=out_syn_images_dir+'/val/', wandb=wandb)
-            wandb.log({log_prefix + 'Val Total loss': v_total, log_prefix + 'Val Albedo loss': v_albedo, log_prefix + 'Val Normal loss': v_normal, \
-                        log_prefix + 'Val SH loss': v_sh, log_prefix + 'Val Recon loss': v_recon})
+            wandb.log({log_prefix + 'Val Total loss': v_total, log_prefix + 'Val Albedo loss': v_albedo, log_prefix + 'Val Recon loss': v_recon})
             
 
-            print('Val set results: Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}'.format(v_total,
-                    v_normal, v_albedo, v_sh, v_recon))
+            print('Val set results: Total Loss: {}, Albedo Loss: {},  Recon Loss: {}'.format(v_total, v_albedo, v_recon))
             
             # Model saving
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
         if epoch % 5 == 0:
-            t_total, t_normal, t_albedo, t_sh, t_recon = predict_sfsnet(sfs_net_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
+            t_total, t_albedo, t_recon = predict_sfsnet(sfs_net_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
                                                                         out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='Test')
 
-            wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Normal loss': t_normal, \
-                       log_prefix+ 'Test SH loss': t_sh, log_prefix+'Test Recon loss': t_recon})
+            wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Recon loss': t_recon})
 
-            print('Test-set results: Total Loss: {}, Normal Loss: {}, Albedo Loss: {}, SH Loss: {}, Recon Loss: {}\n'.format(t_total,
-                                                                                                    t_normal, t_albedo, t_sh, t_recon))
+            print('Test-set results: Total Loss: {}, Albedo Loss: {}, Recon Loss: {}\n'.format(t_total, t_albedo, t_recon))
