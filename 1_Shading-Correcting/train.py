@@ -113,7 +113,7 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
             # save predictions in log folder
             file_name = out_folder + suffix + '_' + str(train_epoch_num) + '_' + str(fix_bix_dump)
             # log images
-            save_p_normal = get_normal_in_range(predicted_normal)
+            save_p_normal = predicted_normal #get_normal_in_range(predicted_normal)
             save_gt_normal = get_normal_in_range(normal)
             wandb_log_images(wandb, save_p_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, suffix +' Predicted Albedo', train_epoch_num, suffix+' Predicted Albedo', path=file_name + '_predicted_albedo.png')
@@ -208,11 +208,11 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
         recon_loss  = recon_loss.cuda()
         shading_loss = shading_loss.cuda()
 
-    lamda_recon  = 0.5 #0.5
+    lamda_recon  = 0.3 #0.5
     lamda_albedo = 0.5 #0.5
     lamda_normal = 0.5
     lamda_sh     = 0.1
-    lamda_shading = 0.5
+    lamda_shading = 0.7
 
     syn_train_len    = len(syn_train_dl)
 
@@ -284,7 +284,7 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
             
             # Log images in wandb
             file_name = out_syn_images_dir + 'train/' +  'train_' + str(epoch)
-            save_p_normal = get_normal_in_range(predicted_normal)
+            save_p_normal = predicted_normal #get_normal_in_range(predicted_normal)
             save_gt_normal = get_normal_in_range(normal)
             wandb_log_images(wandb, save_p_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
@@ -438,7 +438,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             
             # Log images in wandb
             file_name = out_syn_images_dir + 'train/' +  'train_' + str(epoch)
-            save_p_normal = get_normal_in_range(predicted_normal)
+            save_p_normal = predicted_normal #get_normal_in_range(predicted_normal)
             save_gt_normal = get_normal_in_range(normal)
             wandb_log_images(wandb, save_p_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')

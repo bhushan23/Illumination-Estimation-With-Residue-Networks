@@ -112,9 +112,14 @@ def main():
 
     wandb.watch(sfs_net_model)
     # 1. Train on both Synthetic and Real (Celeba) dataset
-    train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    #train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    #        batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
+    #        lr=lr, wt_decay=wt_decay)
+    
+    train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
             batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
             lr=lr, wt_decay=wt_decay)
-    
+ 
+  
 if __name__ == '__main__':
     main()
