@@ -104,7 +104,7 @@ class sfsNetShading(nn.Module):
 def get_conv(in_channels, out_channels, kernel_size=3, padding=0, stride=1, dropout=0):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, 
-                    padding=padding, bias=False),
+                    padding=padding),
         nn.BatchNorm2d(out_channels),
         nn.ReLU(inplace=True)
     )
@@ -115,17 +115,20 @@ class ResNetBlock(nn.Module):
     """
     def __init__(self, in_planes, out_planes, stride=1):
         super(ResNetBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_planes)
-        self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_planes)
-        self.shortcut = nn.Sequential()
+            self.res = nn.Sequential(
+                nn.BatchNorm2d(in_planes),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(in_planes, in_planes, 3, stride=1, padding=1),
+                nn.BatchNorm2d(in_planes),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(in_planes, out_planes, 3, stride=1, padding=1)
+        	    )
 
     def forward(self, x):
-        out = F.relu(self.bn1(x))
-        out = F.relu(self.bn2(self.conv1(out)))
-        out = self.conv2(out)
-        out += self.shortcut(x)
+        residual = x
+        out = self.res(x)
+        out += residual
+
         return out
 
 class baseFeaturesExtractions(nn.Module):
@@ -135,7 +138,7 @@ class baseFeaturesExtractions(nn.Module):
         super(baseFeaturesExtractions, self).__init__()
         self.conv1 = get_conv(3, 64, kernel_size=7, padding=3)
         self.conv2 = get_conv(64, 128, kernel_size=3, padding=1)
-        self.conv3 = get_conv(128, 128, kernel_size=3, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1)
 
     def forward(self, x):
         out = self.conv1(x)
@@ -271,36 +274,27 @@ class ShadingCorrectNess(nn.Module):
         out = self.conv2(out)
         return out
 
-class ReconstructImage(nn.Module):
-    """ Reconstruct Image from shading and albedo
-    """
-    def __init__(self):
-        super(ReconstructImage, self).__init__()
-    
-    def forward(self, shading, albedo):
-        return shading * albedo
+def reconstruct_image(shading, albedo):
+    return shading * albedo
         
 class SfsNetPipeline(nn.Module):
     """ SfSNet Pipeline
     """
-    def __init__(self, conv_model, normal_residual_model, albedo_residual_model,
-                    light_estimator_model, normal_gen_model, albedo_gen_model, shading_model,
-                    neural_light_model, shading_correctness_model, image_recon_model):
+    def __init__(self):
         super(SfsNetPipeline, self).__init__()
-        self.conv_model = conv_model
-        self.normal_residual_model = normal_residual_model
-        self.albedo_residual_model = albedo_residual_model
-        self.light_estimator_model = light_estimator_model
-        self.normal_gen_model      = normal_gen_model
-        self.albedo_gen_model      = albedo_gen_model
-        self.shading_model         = shading_model
-        self.neural_light_model    = neural_light_model
-        self.shading_correctness_model = shading_correctness_model
-        self.image_recon_model     = image_recon_model
+        self.conv_model            = baseFeaturesExtractions()
+        self.normal_residual_model = NormalResidualBlock()
+        self.normal_gen_model      = NormalGenerationNet()
+        self.albedo_residual_model = AlbedoResidualBlock()
+        self.albedo_gen_model      = AlbedoGenerationNet()
+        self.light_estimator_model = LightEstimator()
+        self.shading_residual_model = ShadingResidualEstimator()
+        self.neural_light_model     = NeuralLatentLightEstimator()
+        self.shading_correctness_model = ShadingCorrectNess()
 
     def get_face(self, sh, normal, albedo):
-        shading = self.shading_model(normal, sh)
-        recon   = self.image_recon_model(shading, albedo)
+        shading = get_shading(normal, sh)
+        recon   = reconstruct_image(shading, albedo)
         return recon
 
     def forward(self, face):
