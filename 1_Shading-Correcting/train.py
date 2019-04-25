@@ -199,23 +199,20 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     albedo_loss = nn.L1Loss()
     sh_loss     = nn.MSELoss()
     recon_loss  = nn.L1Loss() 
+    shading_loss = nn.L1Loss()
 
     if use_cuda:
         normal_loss = normal_loss.cuda()
         albedo_loss = albedo_loss.cuda()
         sh_loss     = sh_loss.cuda()
         recon_loss  = recon_loss.cuda()
+        shading_loss = shading_loss.cuda()
 
-    lamda_recon  = 0.5
-    lamda_albedo = 0.5
-    lamda_normal = 0.5
-    lamda_sh     = 0.4
-
-    if use_cuda:
-        normal_loss = normal_loss.cuda()
-        albedo_loss = albedo_loss.cuda()
-        sh_loss     = sh_loss.cuda()
-        recon_loss  = recon_loss.cuda()
+    lamda_recon  = 0.6 #0.5
+    lamda_albedo = 1 #0.5
+    lamda_normal = 1 #0.5
+    lamda_sh     = 1 #0.5
+    lamda_shading = 0.4 #0.5
 
     syn_train_len    = len(syn_train_dl)
 
@@ -225,6 +222,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         aloss = 0 # Albedo loss
         shloss = 0 # SH loss
         rloss = 0 # Reconstruction loss
+        shadingloss = 0 # Shading loss
 
         for bix, data in enumerate(syn_train_dl):
             albedo, normal, mask, sh, face = data
@@ -246,6 +244,11 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             current_albedo_loss = albedo_loss(predicted_albedo, albedo)
             # SH loss
             current_sh_loss     = sh_loss(predicted_sh, sh)
+
+            # corrected shading should be close to predicted shading
+            gt_shading = get_shading(normal, sh)
+            current_shading_loss = shading_loss(predicted_corrected_shading, gt_shading)
+
             # Reconstruction loss
             # Edge case: Shading generation requires denormalized normal and sh
             # Hence, denormalizing face here
@@ -253,7 +256,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
 
             # if celeba_data is not None:
             total_loss = lamda_normal * current_normal_loss + lamda_albedo * current_albedo_loss + \
-                         lamda_sh * current_sh_loss + lamda_recon * current_recon_loss 
+                         lamda_sh * current_sh_loss + lamda_recon * current_recon_loss + lamda_shading * current_shading_loss
 
             optimizer.zero_grad()
             total_loss.backward()

@@ -191,25 +191,18 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     optimizer = torch.optim.Adam(model_parameters, lr=lr, weight_decay=wt_decay)
     normal_loss = nn.L1Loss()
     albedo_loss = nn.L1Loss()
-    sh_loss     = nn.MSELoss()
     recon_loss  = nn.L1Loss() 
+    shading_loss = nn.L1Loss()
 
     if use_cuda:
         normal_loss = normal_loss.cuda()
         albedo_loss = albedo_loss.cuda()
-        sh_loss     = sh_loss.cuda()
-        recon_loss  = recon_loss.cuda()
+        shading_loss = shading_loss.cuda()
 
-    lamda_recon  = 0.5
-    lamda_albedo = 0.5
-    lamda_normal = 0.5
-    lamda_sh     = 0.4
-
-    if use_cuda:
-        normal_loss = normal_loss.cuda()
-        albedo_loss = albedo_loss.cuda()
-        sh_loss     = sh_loss.cuda()
-        recon_loss  = recon_loss.cuda()
+    lamda_recon  = 0.6 #0.5
+    lamda_albedo = 1 #0.5
+    lamda_normal = 1 #0.5
+    lamda_shading = 0.4
 
     syn_train_len    = len(syn_train_dl)
 
@@ -218,6 +211,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         nloss = 0 # Normal loss
         aloss = 0 # Albedo loss
         rloss = 0 # Reconstruction loss
+        sh_loss = 0 # Shading loss
 
         for bix, data in enumerate(syn_train_dl):
             albedo, normal, mask, sh, face = data
@@ -242,9 +236,13 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Hence, denormalizing face here
             current_recon_loss  = recon_loss(out_recon, face)
 
+            gt_shading = get_shading(normal, sh)
+
+            current_shading_loss = shading_loss(out_shading, gt_shading)
+
             # if celeba_data is not None:
             total_loss = lamda_normal * current_normal_loss + lamda_albedo * current_albedo_loss + \
-                         + lamda_recon * current_recon_loss 
+                         + lamda_recon * current_recon_loss + lamda_shading * current_shading_loss
 
             optimizer.zero_grad()
             total_loss.backward()

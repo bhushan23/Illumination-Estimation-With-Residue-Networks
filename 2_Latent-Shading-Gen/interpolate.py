@@ -39,7 +39,7 @@ def interpolate(model_dir, input_path, output_path):
   sfs_net_model         = SfsNetPipeline(conv_model, normal_residual_model, albedo_residual_model, \
                                           normal_gen_model, albedo_gen_model, shading_trad_model, \
                                           shading_model, neural_light_model, image_recon_model)
-   if use_cuda:
+  if use_cuda:
       sfs_net_model = sfs_net_model.cuda()
   
   sfs_net_model.load_state_dict(torch.load(model_dir + 'sfs_net_model.pkl'))
@@ -48,22 +48,24 @@ def interpolate(model_dir, input_path, output_path):
     if use_cuda:
       data = data.cuda()
 
-    normal, albedo, sh, shading, recon = sfs_net_model(data)
+    normal, albedo, shading, recon = sfs_net_model(data)
     output_dir = output_path + str(bix)
 
+    normal = normal * 128 + 128
+    normal = normal.clamp(0, 255) / 255
     save_image(data, path=output_dir+'_face.png')
     save_image(normal, path=output_dir+'_normal.png')
     save_image(albedo, path=output_dir+'_albedo.png')
     save_image(shading, path=output_dir+'_shading.png')
     save_image(recon, path=output_dir+'_recon.png')
-    sh = sh.cpu().detach().numpy()
-    np.savetxt(output_dir+'_light.txt', sh, delimiter='\t')
+    # sh = sh.cpu().detach().numpy()
+    # np.savetxt(output_dir+'_light.txt', sh, delimiter='\t')
 
 
 def main():
     parser = argparse.ArgumentParser(description='SfSNet - Interpolation')
 
-    parser.add_argument('--data', type=str, default='../data/interpolation-input/',
+    parser.add_argument('--data', type=str, default='../data/interpolation-input/faces/',
                         help='interpolation input')
     parser.add_argument('--load_model', type=str, default=None,
                         help='load model from')
@@ -76,9 +78,9 @@ def main():
     output_dir = args.output_dir
 
     # load Synthetic trained model only
-    model_path = model_dir + 'Synthetic_Train/checkpoints/'
-    output_dir_syn = output_dir + '/Synthetic_Train_Interpolation/'
-    interpolate(model_path, data_dir, output_dir_syn)
+    # model_path = model_dir + 'Synthetic_Train/checkpoints/'
+    # output_dir_syn = output_dir + '/Synthetic_Train_Interpolation/'
+    # interpolate(model_path, data_dir, output_dir_syn)
 
     # load Mix Data trained model
     model_path = model_dir + 'Mix_Training/checkpoints/'
