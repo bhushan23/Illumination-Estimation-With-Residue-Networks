@@ -19,7 +19,6 @@ from utils import *
 from shading import *
 from train import *
 from models import *
-from sfs_net_model import SfSNet as sfsnet_pretrained_model
 
 def main():
     ON_SERVER = True
@@ -41,7 +40,7 @@ def main():
                         help='read first n rows (default: -1)')
     parser.add_argument('--details', type=str, default=None,
                         help='Explaination of the run')
-    parser.add_argument('--load_pretrained_model', type=str, default='./pretrained/net_epoch_r5_5.pth',
+    parser.add_argument('--load_pretrained_model', type=str, default='../pretrained/net_epoch_r5_5.pth',
                         help='Pretrained model path')
     if ON_SERVER:
         parser.add_argument('--syn_data', type=str, default='/nfs/bigdisk/bsonawane/sfsnet_data/',
