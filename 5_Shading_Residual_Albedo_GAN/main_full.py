@@ -114,7 +114,7 @@ def main():
     with open(args.log_dir+'/details.txt', 'w') as f:
         f.write(args.details)
 
-    wandb.watch(sfs_net_model)
+    # wandb.watch(sfs_net_model)
     """
     # 1. Train on Synthetic data
     train(sfs_net_model, syn_data, celeba_data = None, read_first=read_first, \
@@ -150,12 +150,12 @@ def main():
     generate_celeba_synthesize_data_csv(out_test_celeba_images_dir, out_celeba_images_dir + '/test.csv') 
     """        
     # 3. Train on both Synthetic and Real (Celeba) dataset
-    # train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
-    #        batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
-    #        lr=lr, wt_decay=wt_decay)
-    train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
-            batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
-            lr=lr, wt_decay=wt_decay)
+    train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+           batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
+           lr=lr, wt_decay=wt_decay)
+    # train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    #         batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
+    #         lr=lr, wt_decay=wt_decay)
 
 if __name__ == '__main__':
     main()

@@ -264,10 +264,9 @@ class ShadingResidualEstimator(nn.Module):
         out = self.conv4(out)
         return out
 
-
 def reconstruct_image(shading, albedo):
     return shading * albedo
-        
+
 class SfsNetPipeline(nn.Module):
     """ SfSNet Pipeline
     """
@@ -277,9 +276,9 @@ class SfsNetPipeline(nn.Module):
         self.normal_residual_model = NormalResidualBlock()
         self.normal_gen_model      = NormalGenerationNet()
         self.albedo_residual_model = AlbedoResidualBlock()
-        self.albedo_gen_model      = AlbedoGenerationNet()
+        # self.albedo_gen_model      = AlbedoGenerationNet()
         self.light_estimator_model = LightEstimator()
-        self.shading_residual_model = ShadingResidualEstimator()
+        # self.shading_residual_model = ShadingResidualEstimator()
 
     def get_face(self, sh, normal, albedo):
         shading = get_shading(normal, sh)
@@ -298,25 +297,29 @@ class SfsNetPipeline(nn.Module):
         
         # 3 a. Generate Normal
         predicted_normal = self.normal_gen_model(out_normal_features)
+
         # 3 b. Generate Albedo
-        predicted_albedo = self.albedo_gen_model(out_albedo_features)
+        # predicted_albedo = self.albedo_gen_model(out_albedo_features)
         # 3 c. Estimate lighting
         # First, concat conv, normal and albedo features over channels dimension
         all_features = torch.cat((out_features, out_normal_features, out_albedo_features), dim=1)
         # Predict SH
         predicted_sh = self.light_estimator_model(all_features)
 
-        # 4. Generate shading
-        out_shading = get_shading(predicted_normal, predicted_sh)
-
-        # 5. Get Shading Residual
         shading_residual = self.shading_residual_model(all_features)
-        updated_shading = out_shading + shading_residual
+        
+        return predicted_normal, out_albedo_features, predicted_sh, shading_residual
 
-        # 6. Reconstruction of image
-        out_recon = reconstruct_image(updated_shading, predicted_albedo)
+        # # 4. Generate shading
+        # out_shading = get_shading(predicted_normal, predicted_sh)
 
-        return predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon
+        # # 5. Get Shading Residual
+        # updated_shading = out_shading + shading_residual
+
+        # # 6. Reconstruction of image
+        # out_recon = reconstruct_image(updated_shading, predicted_albedo)
+
+        # return predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon
     
     def fix_weights(self):
         dfs_freeze(self.conv_model)
