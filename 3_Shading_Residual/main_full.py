@@ -98,6 +98,8 @@ def main():
 
     if model_dir is not None:
         sfs_net_model.load_state_dict(torch.load(model_dir + 'sfs_net_model.pkl'))
+        sfs_net_model.fix_weights()
+        print('Model loaded')
     else:
         sfs_net_model.apply(weights_init)
         sfs_net_pretrained_dict = torch.load(pretrained_model_dict)
@@ -105,6 +107,7 @@ def main():
         load_model_from_pretrained(sfs_net_pretrained_dict, sfs_net_state_dict)
         sfs_net_model.load_state_dict(sfs_net_state_dict)
         sfs_net_model.fix_weights()
+        print('Pre-trained model loaded')
         # torch.save(sfs_net_model.state_dict(), log_dir + 'Mix_Training/checkpoints/' + 'sfs_net_model.pkl')
 
     os.system('mkdir -p {}'.format(args.log_dir))
@@ -147,9 +150,12 @@ def main():
     generate_celeba_synthesize_data_csv(out_test_celeba_images_dir, out_celeba_images_dir + '/test.csv') 
     """        
     # 3. Train on both Synthetic and Real (Celeba) dataset
-    train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    # train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    #        batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
+    #        lr=lr, wt_decay=wt_decay)
+    train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
             batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
             lr=lr, wt_decay=wt_decay)
-    
+
 if __name__ == '__main__':
     main()
