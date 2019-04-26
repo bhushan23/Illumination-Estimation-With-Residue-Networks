@@ -22,7 +22,7 @@ from models import *
 from sfs_net_model import SfSNet as sfsnet_pretrained_model
 
 def main():
-    ON_SERVER = False
+    ON_SERVER = True
 
     parser = argparse.ArgumentParser(description='SfSNet - Shading Residual')
     parser.add_argument('--batch_size', type=int, default=8, metavar='N',
@@ -41,7 +41,7 @@ def main():
                         help='read first n rows (default: -1)')
     parser.add_argument('--details', type=str, default=None,
                         help='Explaination of the run')
-    parser.add_argument('--load_pretrained_model', type=str, default='./pretrained/net_epoch_r5_5.pth',
+    parser.add_argument('--load_pretrained_model', type=str, default='../pretrained/net_epoch_r5_5.pth',
                         help='Pretrained model path')
     if ON_SERVER:
         parser.add_argument('--syn_data', type=str, default='/nfs/bigdisk/bsonawane/sfsnet_data/',
@@ -88,7 +88,7 @@ def main():
     # return 
 
     # Init WandB for logging
-    wandb.init(project='SfSNet-CelebA-Shading-Residual-PreTrained')
+    wandb.init(project='SfSNet-CelebA-Shading-Albedo-Residual-PreTrained')
     wandb.log({'lr':lr, 'weight decay': wt_decay})
 
     # Initialize models
@@ -150,12 +150,12 @@ def main():
     generate_celeba_synthesize_data_csv(out_test_celeba_images_dir, out_celeba_images_dir + '/test.csv') 
     """        
     # 3. Train on both Synthetic and Real (Celeba) dataset
-    # train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
-    #        batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
-    #        lr=lr, wt_decay=wt_decay)
-    train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
             batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
             lr=lr, wt_decay=wt_decay)
+    # train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    #        batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
+    #        lr=lr, wt_decay=wt_decay)
 
 if __name__ == '__main__':
     main()

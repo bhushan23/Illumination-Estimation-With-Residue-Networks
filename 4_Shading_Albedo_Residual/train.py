@@ -194,7 +194,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         recon_loss  = recon_loss.cuda()
 
     lamda_recon  = 1
-    # lamda_albedo = 0.5
+    lamda_albedo = 0.5
 
     if use_cuda:
         albedo_loss = albedo_loss.cuda()
@@ -232,8 +232,8 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Hence, denormalizing face here
             current_recon_loss  = recon_loss(out_recon, face)
 
-            # total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss 
-            total_loss = lamda_recon * current_recon_loss 
+            total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss 
+            # total_loss = lamda_recon * current_recon_loss 
 
             optimizer.zero_grad()
             total_loss.backward()
@@ -242,8 +242,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Logging for display and debugging purposes
             tloss += total_loss.item()
             # nloss += current_normal_loss.item()
-            aloss += current_albedo_loss.itemwandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
-            ()
+            aloss += current_albedo_loss.item()
             # shloss += current_sh_loss.item()
             rloss += current_recon_loss.item()
 
