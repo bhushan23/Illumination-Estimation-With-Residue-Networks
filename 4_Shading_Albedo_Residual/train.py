@@ -98,7 +98,7 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
         # Apply Mask on input image
         # face = applyMask(face, mask)
         # predicted_face == reconstruction
-        predicted_normal, predicted_albedo, predicted_sh, predicted_shading, shading_residual, updated_shading, predicted_face = sfs_net_model(face)
+        predicted_normal, predicted_albedo, updated_albedo, predicted_sh, predicted_shading, residual, updated_shading, predicted_face = sfs_net_model(face)
 
         if bix == fix_bix_dump:
             # save predictions in log folder
@@ -110,8 +110,9 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
 
             wandb_log_images(wandb, save_p_normal, mask, suffix+' Predicted Normal', train_epoch_num, suffix+' Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, suffix +' Predicted Albedo', train_epoch_num, suffix+' Predicted Albedo', path=file_name + '_predicted_albedo.png')
+            wandb_log_images(wandb, updated_albedo, mask, suffix +' Predicted Updated Albedo', train_epoch_num, suffix+' Predicted Updated Albedo', path=file_name + '_predicted_updated_albedo.png')
             wandb_log_images(wandb, predicted_shading, mask, suffix+' Predicted Shading', train_epoch_num, suffix+' Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
-            wandb_log_images(wandb, shading_residual, mask, suffix+' Predicted Shading Residual', train_epoch_num, suffix+' Predicted Shading Residual', path=file_name + '_predicted_residual_shading.png', denormalize=False)
+            wandb_log_images(wandb, residual, mask, suffix+' Predicted Residual', train_epoch_num, suffix+' Predicted Residual', path=file_name + '_predicted_residual.png', denormalize=False)
             wandb_log_images(wandb, updated_shading, mask, suffix+' Predicted Updated Shading', train_epoch_num, suffix+' Predicted Updated Shading', path=file_name + '_predicted_updated_shading.png', denormalize=False)
             wandb_log_images(wandb, predicted_face, mask, suffix+' Predicted face', train_epoch_num, suffix+' Predicted face', path=file_name + '_predicted_face.png', denormalize=False)
             wandb_log_images(wandb, face, mask, suffix+' Ground Truth', train_epoch_num, suffix+' Ground Truth', path=file_name + '_gt_face.png')
@@ -192,8 +193,8 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
 
-    lamda_recon  = 0.5
-    lamda_albedo = 0.5
+    lamda_recon  = 1
+    # lamda_albedo = 0.5
 
     if use_cuda:
         albedo_loss = albedo_loss.cuda()
@@ -217,7 +218,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
            
             # Apply Mask on input image
             # face = applyMask(face, mask)
-            predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon = sfs_net_model(face)
+            predicted_normal, predicted_albedo, updated_albedo, predicted_sh, out_shading, residual, updated_shading, out_recon = sfs_net_model(face)
             
             # Loss computation
             # Normal loss
@@ -231,7 +232,8 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Hence, denormalizing face here
             current_recon_loss  = recon_loss(out_recon, face)
 
-            total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss 
+            # total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss 
+            total_loss = lamda_recon * current_recon_loss 
 
             optimizer.zero_grad()
             total_loss.backward()
@@ -240,7 +242,8 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Logging for display and debugging purposes
             tloss += total_loss.item()
             # nloss += current_normal_loss.item()
-            aloss += current_albedo_loss.item()
+            aloss += current_albedo_loss.itemwandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
+            ()
             # shloss += current_sh_loss.item()
             rloss += current_recon_loss.item()
 
@@ -262,8 +265,9 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             save_p_normal = predicted_normal
             wandb_log_images(wandb, save_p_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
+            wandb_log_images(wandb, updated_albedo, mask, 'Train Predicted Updated Albedo', epoch, 'Train Predicted Updated Albedo', path=file_name + '_predicted_updated_albedo.png')
             wandb_log_images(wandb, out_shading, mask, 'Train Predicted Shading', epoch, 'Train Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
-            wandb_log_images(wandb, shading_residual, mask, 'Train Predicted Shading Residual', epoch, 'Train Predicted Shading Residual', path=file_name + '_predicted_residual_shading.png', denormalize=False)
+            wandb_log_images(wandb, residual, mask, 'Train Predicted Residual', epoch, 'Train Predicted Residual', path=file_name + '_predicted_residual.png', denormalize=False)
             wandb_log_images(wandb, updated_shading, mask, 'Train Predicted Updated Shading', epoch, 'Train Predicted Updated Shading', path=file_name + '_predicted_updated_shading.png', denormalize=False)
             wandb_log_images(wandb, out_recon, mask, 'Train Recon', epoch, 'Train Recon', path=file_name + '_predicted_face.png')
             wandb_log_images(wandb, face, mask, 'Train Ground Truth', epoch, 'Train Ground Truth', path=file_name + '_gt_face.png')
@@ -338,9 +342,9 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
         recon_loss  = recon_loss.cuda()
         shading_loss = shading_loss.cuda()
 
-    lamda_recon  = 0.5
-    lamda_albedo = 0.5
-    lamda_shading = 0.5
+    lamda_recon  = 1
+    # lamda_albedo = 0.5
+    lamda_shading = 1
 
     syn_train_len    = len(syn_train_dl)
 
@@ -361,7 +365,7 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
            
             # Apply Mask on input image
             # face = applyMask(face, mask)
-            predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon = sfs_net_model(face)
+            predicted_normal, predicted_albedo, updated_albedo, predicted_sh, out_shading, residual, updated_shading, out_recon = sfs_net_model(face)
             
             # Loss computation
             # Normal loss
@@ -380,9 +384,11 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
             # Hence, denormalizing face here
             current_recon_loss  = recon_loss(out_recon, face)
 
-            total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + \
-                            lamda_shading * current_shading_loss
+            # total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + \
+                            # lamda_shading * current_shading_loss
 
+            total_loss = lamda_recon * current_recon_loss + lamda_shading * current_shading_loss
+        
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
@@ -413,8 +419,9 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
             save_p_normal = predicted_normal
             wandb_log_images(wandb, save_p_normal, mask, 'Train Predicted Normal', epoch, 'Train Predicted Normal', path=file_name + '_predicted_normal.png')
             wandb_log_images(wandb, predicted_albedo, mask, 'Train Predicted Albedo', epoch, 'Train Predicted Albedo', path=file_name + '_predicted_albedo.png')
+            wandb_log_images(wandb, updated_albedo, mask, 'Train Predicted Updated Albedo', epoch, 'Train Predicted Updated Albedo', path=file_name + '_predicted_updated_albedo.png')
             wandb_log_images(wandb, out_shading, mask, 'Train Predicted Shading', epoch, 'Train Predicted Shading', path=file_name + '_predicted_shading.png', denormalize=False)
-            wandb_log_images(wandb, shading_residual, mask, 'Train Predicted Shading Residual', epoch, 'Train Predicted Shading Residual', path=file_name + '_predicted_residual_shading.png', denormalize=False)
+            wandb_log_images(wandb, residual, mask, 'Train Predicted Residual', epoch, 'Train Predicted Residual', path=file_name + '_predicted_residual.png', denormalize=False)
             wandb_log_images(wandb, updated_shading, mask, 'Train Predicted Updated Shading', epoch, 'Train Predicted Updated Shading', path=file_name + '_predicted_updated_shading.png', denormalize=False)
             wandb_log_images(wandb, out_recon, mask, 'Train Recon', epoch, 'Train Recon', path=file_name + '_predicted_face.png')
             wandb_log_images(wandb, face, mask, 'Train Ground Truth', epoch, 'Train Ground Truth', path=file_name + '_gt_face.png')

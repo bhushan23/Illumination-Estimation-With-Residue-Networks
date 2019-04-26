@@ -245,11 +245,11 @@ class LightEstimator(nn.Module):
         out = self.fc(out)
         return out
 
-class ShadingResidualEstimator(nn.Module):
+class ResidualEstimator(nn.Module):
     """ Estimate Shading Residual from normal, albedo and conv features
     """
     def __init__(self):
-        super(ShadingResidualEstimator, self).__init__()
+        super(ResidualEstimator, self).__init__()
         self.upsample = nn.UpsamplingBilinear2d(size=(128, 128), scale_factor=None)
         self.conv1    = get_conv(384, 128, kernel_size=1, stride=1)
         self.conv2    = get_conv(128, 64, kernel_size=1, stride=1)
@@ -279,7 +279,7 @@ class SfsNetPipeline(nn.Module):
         self.albedo_residual_model = AlbedoResidualBlock()
         self.albedo_gen_model      = AlbedoGenerationNet()
         self.light_estimator_model = LightEstimator()
-        self.shading_residual_model = ShadingResidualEstimator()
+        self.residual_model = ResidualEstimator()
 
     def get_face(self, sh, normal, albedo):
         shading = get_shading(normal, sh)
@@ -309,14 +309,16 @@ class SfsNetPipeline(nn.Module):
         # 4. Generate shading
         out_shading = get_shading(predicted_normal, predicted_sh)
 
-        # 5. Get Shading Residual
-        shading_residual = self.shading_residual_model(all_features)
-        updated_shading = out_shading + shading_residual
+        # 5. Get Residual
+        residual = self.residual_model(all_features)
+        # 5 a. update shading and albedo
+        updated_shading = out_shading + residual
+        updated_albedo  = predicted_albedo - residual
 
         # 6. Reconstruction of image
         out_recon = reconstruct_image(updated_shading, predicted_albedo)
 
-        return predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon
+        return predicted_normal, predicted_albedo, updated_albedo, predicted_sh, out_shading, residual, updated_shading, out_recon
     
     def fix_weights(self):
         dfs_freeze(self.conv_model)
@@ -324,7 +326,7 @@ class SfsNetPipeline(nn.Module):
         dfs_freeze(self.normal_gen_model)
         dfs_freeze(self.albedo_residual_model)
         dfs_freeze(self.light_estimator_model)
-        # Note that we are not freezing Albedo gen model
+        dfs_freeze(self.albedo_gen_model)
 
 
 # Use following to fix weights of the model

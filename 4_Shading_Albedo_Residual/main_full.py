@@ -22,7 +22,7 @@ from models import *
 from sfs_net_model import SfSNet as sfsnet_pretrained_model
 
 def main():
-    ON_SERVER = True
+    ON_SERVER = False
 
     parser = argparse.ArgumentParser(description='SfSNet - Shading Residual')
     parser.add_argument('--batch_size', type=int, default=8, metavar='N',
