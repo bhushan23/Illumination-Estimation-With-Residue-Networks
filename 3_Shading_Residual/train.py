@@ -338,9 +338,9 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
         recon_loss  = recon_loss.cuda()
         shading_loss = shading_loss.cuda()
 
-    lamda_recon  = 0.5
+    lamda_recon  = 0.3
     lamda_albedo = 0.5
-    lamda_shading = 0.5
+    lamda_shading = 0.7
 
     syn_train_len    = len(syn_train_dl)
 
