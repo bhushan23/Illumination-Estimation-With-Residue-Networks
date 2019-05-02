@@ -6,6 +6,7 @@
 #
 
 import torch
+torch.manual_seed(100)
 import torchvision
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -41,7 +42,7 @@ def main():
                         help='read first n rows (default: -1)')
     parser.add_argument('--details', type=str, default=None,
                         help='Explaination of the run')
-    parser.add_argument('--load_pretrained_model', type=str, default='./pretrained/net_epoch_r5_5.pth',
+    parser.add_argument('--load_pretrained_model', type=str, default='../pretrained/net_epoch_r5_5.pth',
                         help='Pretrained model path')
     if ON_SERVER:
         parser.add_argument('--syn_data', type=str, default='/nfs/bigdisk/bsonawane/sfsnet_data/',
@@ -88,24 +89,33 @@ def main():
     # return 
 
     # Init WandB for logging
-    wandb.init(project='SfSNet-CelebA-Shading-Residual-PreTrained')
+    wandb.init(project='SfSNet-CelebA-GANLoss-Shading-Residual-PreTrained')
     wandb.log({'lr':lr, 'weight decay': wt_decay})
 
     # Initialize models
     sfs_net_model      = SfsNetPipeline()
+    albedo_gen_model = AlbedoGenerationNet()
+    albedo_dis_model = Discriminator()
+
     if use_cuda:
         sfs_net_model = sfs_net_model.cuda()
 
     if model_dir is not None:
         sfs_net_model.load_state_dict(torch.load(model_dir + 'sfs_net_model.pkl'))
+        albedo_gen_model.load_state_dict(torch.load(model_dir + 'albedo_gen_model.pkl'))
+        albedo_dis_model.load_state_dict(torch.load(model_dir + 'albedo_dis_model.pkl'))
         sfs_net_model.fix_weights()
         print('Model loaded')
     else:
         sfs_net_model.apply(weights_init)
+        albedo_gen_model.apply(weights_init)
+        albedo_dis_model.apply(weights_init)
         sfs_net_pretrained_dict = torch.load(pretrained_model_dict)
         sfs_net_state_dict = sfs_net_model.state_dict()
-        load_model_from_pretrained(sfs_net_pretrained_dict, sfs_net_state_dict)
+        albedo_gen_state_dict = albedo_gen_model.state_dict()
+        load_model_from_pretrained(sfs_net_pretrained_dict, sfs_net_state_dict, albedo_gen_state_dict)
         sfs_net_model.load_state_dict(sfs_net_state_dict)
+        albedo_gen_model.load_state_dict(albedo_gen_state_dict)
         sfs_net_model.fix_weights()
         print('Pre-trained model loaded')
         # torch.save(sfs_net_model.state_dict(), log_dir + 'Mix_Training/checkpoints/' + 'sfs_net_model.pkl')
@@ -150,7 +160,7 @@ def main():
     generate_celeba_synthesize_data_csv(out_test_celeba_images_dir, out_celeba_images_dir + '/test.csv') 
     """        
     # 3. Train on both Synthetic and Real (Celeba) dataset
-    train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
+    train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
            batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
            lr=lr, wt_decay=wt_decay)
     # train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\

@@ -113,13 +113,19 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, gan_re
         # GAN Training
         valid = torch.ones(albedo.shape[0], requires_grad = False)
         fake = torch.zeros(albedo.shape[0], requires_grad = False)
-
+        
+        if use_cuda:
+            valid = valid.cuda()
+            fake = fake.cuda()
         # Get real sample
-        real_sample = next(real_gan_iter, None)
-        if real_sample is None:
+        real_data = next(real_gan_iter, None)
+        if real_data is None:
             train_real_gan_iter = iter(gan_real_dl)
-            real_sample = next(train_real_gan_iter, None)
-            
+            real_data = next(train_real_gan_iter, None)
+        
+        real_sample, _, _, _, _ = real_data
+        if use_cuda:
+            real_sample = real_sample.cuda()
         # GAN loss
         fake_albedo = albedo_gen_model(albedo_features)
         pred_fake   = albedo_dis_model(fake_albedo)
@@ -128,7 +134,7 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, gan_re
 
         out_shading = get_shading(predicted_normal, predicted_sh)
         updated_shading = out_shading + shading_residual
-        out_recon = reconstruct_image(updated_shading, pred_fake)
+        out_recon = reconstruct_image(updated_shading, fake_albedo)
 
         # albedo recon loss
         current_albedo_loss = albedo_loss(fake_albedo, albedo)
@@ -173,7 +179,7 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, gan_re
             wandb_log_images(wandb, save_gt_normal, mask, suffix+' Ground Truth Normal', train_epoch_num, suffix+' Ground Normal', path=file_name + '_gt_normal.png')
             wandb_log_images(wandb, albedo, mask, suffix+' Ground Truth Albedo', train_epoch_num, suffix+' Ground Albedo', path=file_name + '_gt_albedo.png')
             # Get face with real SH
-            real_sh_face = sfs_net_model.get_face(sh, predicted_normal, predicted_albedo)
+            real_sh_face = sfs_net_model.get_face(sh, predicted_normal, fake_albedo)
             wandb_log_images(wandb, real_sh_face, mask, 'Val Real SH Predicted Face', train_epoch_num, 'Val Real SH Predicted Face', path=file_name + '_real_sh_face.png')
             syn_face     = sfs_net_model.get_face(sh, normal, albedo)
             wandb_log_images(wandb, syn_face, mask, 'Val Real SH GT Face', train_epoch_num, 'Val Real SH GT Face', path=file_name + '_syn_gt_face.png')
@@ -187,7 +193,7 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, gan_re
     # return average loss over dataset
     return tloss / len_dl, aloss / len_dl, rloss / len_dl, ganloss/len_dl, disloss / len_dl
 
-def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
+def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_data=None, read_first=None,
           batch_size = 10, num_epochs = 10, log_path = './results/metadata/', use_cuda=False, wandb=None,
           lr = 0.01, wt_decay=0.005):
 
@@ -210,7 +216,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     syn_test_dl   = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     gan_real_train_dataset, gan_real_val_dataset = get_sfsnet_dataset(syn_dir=syn_data+'train/', read_from_csv=syn_train_csv, read_celeba_csv=None, read_first=read_first, validation_split=2)
-    gan_real_test_dataset, _ = get_sfsnet_dataset(syn_dir=syn_data+'test/', read_from_csv=syn_train_csv, read_celeba_csv=None, read_first=read_first, validation_split=0)
+    gan_real_test_dataset, _ = get_sfsnet_dataset(syn_dir=syn_data+'test/', read_from_csv=syn_test_csv, read_celeba_csv=None, read_first=read_first, validation_split=0)
     
     gan_real_train_dl  = DataLoader(gan_real_train_dataset, batch_size=batch_size, shuffle=True)
     train_real_gan_iter = iter(gan_real_train_dl)
@@ -230,9 +236,8 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     os.system('mkdir -p {}'.format(out_syn_images_dir + 'test/'))
 
     # Create Generator and Discriminator
-    albedo_gen_model = AlbedoGenerationNet()
-    albedo_dis_model = Discriminator()
-
+    
+    
     if use_cuda:
         albedo_gen_model = albedo_gen_model.cuda()
         albedo_dis_model = albedo_dis_model.cuda()
@@ -262,6 +267,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     if use_cuda:
         albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
+        gan_loss    = gan_loss.cuda()
 
     syn_train_len    = len(syn_train_dl)
 
@@ -288,25 +294,33 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # GAN Training
             valid = torch.ones(albedo.shape[0], requires_grad = False)
             fake = torch.zeros(albedo.shape[0], requires_grad = False)
-
+            
+            if use_cuda:
+                valid = valid.cuda()
+                fake = fake.cuda()
             # Train Albedo Generator
             g_optimizer.zero_grad()
             
             # Get real sample
-            real_sample = next(train_real_gan_iter, None)
-            if real_sample is None:
+            real_data = next(train_real_gan_iter, None)
+            if real_data is None:
                 train_real_gan_iter = iter(gan_real_train_dl)
-                real_sample = next(train_real_gan_iter, None)
-                
+                real_data = next(train_real_gan_iter, None)
+
+            real_sample, _, _, _, _ = real_data 
+            if use_cuda:
+                real_sample = real_sample.cuda()
+
             # GAN loss
             fake_albedo = albedo_gen_model(albedo_features)
             pred_fake   = albedo_dis_model(fake_albedo)
+            # print(pred_fake.shape, valid.shape)
             loss_GAN    = gan_loss(pred_fake, valid)
             # loss_pixel  = gan_loss_pixelwise(pred_fake, real_B)
 
             out_shading = get_shading(predicted_normal, predicted_sh)
             updated_shading = out_shading + shading_residual
-            out_recon = reconstruct_image(updated_shading, pred_fake)
+            out_recon = reconstruct_image(updated_shading, fake_albedo)
 
             # albedo recon loss
             current_albedo_loss = albedo_loss(fake_albedo, albedo)
@@ -382,7 +396,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Model saving
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
         if epoch % 5 == 0:
-            t_total, t_albedo, t_recon, t_gloss, t_dloss = predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model syn_test_dl, gan_real_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
+            t_total, t_albedo, t_recon, t_gloss, t_dloss = predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_test_dl, gan_real_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
                                                                         out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='Test')
 
             # wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Recon loss': t_recon})
@@ -435,9 +449,9 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
         recon_loss  = recon_loss.cuda()
         shading_loss = shading_loss.cuda()
 
-    lamda_recon  = 0.3
-    lamda_albedo = 0.5
-    lamda_shading = 0.7
+    lamda_recon  = 1 #0.3
+    lamda_albedo = 1 #0.5
+    lamda_shading = 1 #0.7
 
     syn_train_len    = len(syn_train_dl)
 
@@ -470,15 +484,15 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
     
             # corrected shading should be close to predicted shading
             gt_shading = get_shading(normal, sh)
-            current_shading_loss = shading_loss(updated_shading, gt_shading)
+            # current_shading_loss = shading_loss(updated_shading, gt_shading)
 
             # Reconstruction loss
             # Edge case: Shading generation requires denormalized normal and sh
             # Hence, denormalizing face here
             current_recon_loss  = recon_loss(out_recon, face)
 
-            total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + \
-                            lamda_shading * current_shading_loss
+            total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss # + \
+            #                lamda_shading * current_shading_loss
 
             optimizer.zero_grad()
             total_loss.backward()

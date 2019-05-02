@@ -278,7 +278,7 @@ class SfsNetPipeline(nn.Module):
         self.albedo_residual_model = AlbedoResidualBlock()
         # self.albedo_gen_model      = AlbedoGenerationNet()
         self.light_estimator_model = LightEstimator()
-        # self.shading_residual_model = ShadingResidualEstimator()
+        self.shading_residual_model = ShadingResidualEstimator()
 
     def get_face(self, sh, normal, albedo):
         shading = get_shading(normal, sh)
@@ -341,7 +341,7 @@ def dfs_freeze(model):
 # Following method loads author provided model weights
 # Refer to model_loading_synchronization to getf following mapping
 # Following mapping is auto-generated using script
-def load_model_from_pretrained(src_model, dst_model):
+def load_model_from_pretrained(src_model, dst_model, gen_dst_model):
     dst_model['conv_model.conv1.0.weight'] = src_model['conv1.conv.0.weight']
     dst_model['conv_model.conv1.0.bias'] = src_model['conv1.conv.0.bias']
     dst_model['conv_model.conv1.1.weight'] = src_model['conv1.conv.1.weight']
@@ -498,20 +498,20 @@ def load_model_from_pretrained(src_model, dst_model):
     dst_model['albedo_residual_model.bn1.bias'] = src_model['areso.0.bias']
     dst_model['albedo_residual_model.bn1.running_mean'] = src_model['areso.0.running_mean']
     dst_model['albedo_residual_model.bn1.running_var'] = src_model['areso.0.running_var']
-    dst_model['albedo_gen_model.conv1.0.weight'] = src_model['aconv1.conv.0.weight']
-    dst_model['albedo_gen_model.conv1.0.bias'] = src_model['aconv1.conv.0.bias']
-    dst_model['albedo_gen_model.conv1.1.weight'] = src_model['aconv1.conv.1.weight']
-    dst_model['albedo_gen_model.conv1.1.bias'] = src_model['aconv1.conv.1.bias']
-    dst_model['albedo_gen_model.conv1.1.running_mean'] = src_model['aconv1.conv.1.running_mean']
-    dst_model['albedo_gen_model.conv1.1.running_var'] = src_model['aconv1.conv.1.running_var']
-    dst_model['albedo_gen_model.conv2.0.weight'] = src_model['aconv2.conv.0.weight']
-    dst_model['albedo_gen_model.conv2.0.bias'] = src_model['aconv2.conv.0.bias']
-    dst_model['albedo_gen_model.conv2.1.weight'] = src_model['aconv2.conv.1.weight']
-    dst_model['albedo_gen_model.conv2.1.bias'] = src_model['aconv2.conv.1.bias']
-    dst_model['albedo_gen_model.conv2.1.running_mean'] = src_model['aconv2.conv.1.running_mean']
-    dst_model['albedo_gen_model.conv2.1.running_var'] = src_model['aconv2.conv.1.running_var']
-    dst_model['albedo_gen_model.conv3.weight'] = src_model['aout.weight']
-    dst_model['albedo_gen_model.conv3.bias'] = src_model['aout.bias']
+    gen_dst_model['conv1.0.weight'] = src_model['aconv1.conv.0.weight']
+    gen_dst_model['conv1.0.bias'] = src_model['aconv1.conv.0.bias']
+    gen_dst_model['conv1.1.weight'] = src_model['aconv1.conv.1.weight']
+    gen_dst_model['conv1.1.bias'] = src_model['aconv1.conv.1.bias']
+    gen_dst_model['conv1.1.running_mean'] = src_model['aconv1.conv.1.running_mean']
+    gen_dst_model['conv1.1.running_var'] = src_model['aconv1.conv.1.running_var']
+    gen_dst_model['conv2.0.weight'] = src_model['aconv2.conv.0.weight']
+    gen_dst_model['conv2.0.bias'] = src_model['aconv2.conv.0.bias']
+    gen_dst_model['conv2.1.weight'] = src_model['aconv2.conv.1.weight']
+    gen_dst_model['conv2.1.bias'] = src_model['aconv2.conv.1.bias']
+    gen_dst_model['conv2.1.running_mean'] = src_model['aconv2.conv.1.running_mean']
+    gen_dst_model['conv2.1.running_var'] = src_model['aconv2.conv.1.running_var']
+    gen_dst_model['conv3.weight'] = src_model['aout.weight']
+    gen_dst_model['conv3.bias'] = src_model['aout.bias']
     dst_model['light_estimator_model.conv1.0.weight'] = src_model['lconv.conv.0.weight']
     dst_model['light_estimator_model.conv1.0.bias'] = src_model['lconv.conv.0.bias']
     dst_model['light_estimator_model.conv1.1.weight'] = src_model['lconv.conv.1.weight']

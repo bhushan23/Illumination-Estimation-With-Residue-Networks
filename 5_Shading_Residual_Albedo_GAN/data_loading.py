@@ -140,7 +140,7 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
     else:
         df = pd.read_csv(read_from_csv)
         if read_first is not None and len(df) > read_first:
-            df = df.sample(read_first)
+            df = df.sample(read_first, random_state=100)
 
         albedo = list(df['albedo'])
         face   = list(df['face'])
@@ -159,7 +159,7 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
         if read_celeba_csv is not None:
             df = pd.read_csv(read_celeba_csv)
             if read_first is not None and len(df) > read_first:
-                df = df.sample(read_first)
+                df = df.sample(read_first, random_state=100)
             albedo += list(df['albedo'])
             face   += list(df['face'])
             normal += list(df['normal'])
@@ -193,7 +193,7 @@ def get_celeba_dataset(dir=None, read_from_csv=None, read_first=None, validation
     else:
         df = pd.read_csv(read_from_csv)
         if read_first is not None and len(df) > read_first:
-            df = df.sample(read_first)
+            df = df.sample(read_first, random_state=100)
         face   = list(df['face'])
 
     dataset_size = len(face)
