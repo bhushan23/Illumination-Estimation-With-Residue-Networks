@@ -166,10 +166,13 @@ def main():
            batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'GAN_Training/', use_cuda=use_cuda, wandb=wandb, \
            lr=lr, wt_decay=wt_decay)
 
+    # fix the weights of albedo gen model
     albedo_gen_model.fix_weights()
+
     train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
            batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
            lr=lr, wt_decay=wt_decay)
+
     # train_with_shading_loss(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
     #         batch_size=batch_size, num_epochs=epochs, log_path=log_dir+'Mix_Training/', use_cuda=use_cuda, wandb=wandb, \
     #         lr=lr, wt_decay=wt_decay)
