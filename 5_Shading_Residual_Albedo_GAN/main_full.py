@@ -99,6 +99,8 @@ def main():
 
     if use_cuda:
         sfs_net_model = sfs_net_model.cuda()
+        albedo_gen_model = albedo_gen_model.cuda()
+        albedo_dis_model = albedo_dis_model.cuda()
 
     if model_dir is not None:
         sfs_net_model.load_state_dict(torch.load(model_dir + 'sfs_net_model.pkl'))

@@ -235,17 +235,6 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
     os.system('mkdir -p {}'.format(out_syn_images_dir + 'val/'))
     os.system('mkdir -p {}'.format(out_syn_images_dir + 'test/'))
 
-    # Create Generator and Discriminator
-    
-    
-    if use_cuda:
-        albedo_gen_model = albedo_gen_model.cuda()
-        albedo_dis_model = albedo_dis_model.cuda()
-    
-    # Init gen and disc
-    albedo_gen_model.apply(weights_init)
-    albedo_dis_model.apply(weights_init)
-
     # Collect model parameters
     model_parameters = sfs_net_model.parameters()
     optimizer = torch.optim.Adam(model_parameters, lr=lr) #, weight_decay=wt_decay)
@@ -261,8 +250,8 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
         albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
 
-    lamda_recon  = 0.5
-    lamda_albedo = 0.5
+    lamda_recon  = 10
+    lamda_albedo = 1
 
     if use_cuda:
         albedo_loss = albedo_loss.cuda()
@@ -361,10 +350,10 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             log_prefix = 'Mix Data '
 
         if epoch % 1 == 0:
-            print('Training set results: Total Loss: {}, Albedo Loss: {}, Recon Loss: {}'.format(tloss / syn_train_len, \
-                   aloss / syn_train_len, rloss / syn_train_len))
+            print('Training set results: Total Loss: {}, Albedo Loss: {}, Recon Loss: {} Generator Loss: {}, Discriminator Loss: {}'.format(tloss / syn_train_len, \
+                   aloss / syn_train_len, rloss / syn_train_len, ganloss / syn_train_len, disloss / syn_train_loss))
             # Log training info
-            wandb.log({log_prefix + 'Train Total loss': tloss/syn_train_len, log_prefix + 'Train Albedo loss': aloss/syn_train_len, log_prefix + 'Train Recon loss': rloss/syn_train_len})
+            wandb.log({log_prefix + 'Train Total loss': tloss/syn_train_len, log_prefix + 'Train Albedo loss': aloss/syn_train_len, log_prefix + 'Train Recon loss': rloss/syn_train_len, log_prefix + 'Train GAN loss': ganloss/syn_train_len, log_prefix + 'Train Dis loss': disloss/syn_train_len })
             
             # Log images in wandb
             file_name = out_syn_images_dir + 'train/' +  'train_' + str(epoch)
