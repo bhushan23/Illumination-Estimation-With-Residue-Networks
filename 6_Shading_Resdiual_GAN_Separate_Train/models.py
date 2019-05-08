@@ -228,6 +228,9 @@ class AlbedoGenerationNet(nn.Module):
         out = self.conv3(out)
         return out
 
+    def fix_weights(self):
+        dfs_freeze(self)
+
 class LightEstimator(nn.Module):
     """ Estimate lighting from normal, albedo and conv features
     """
@@ -332,6 +335,9 @@ class SfsNetPipeline(nn.Module):
         dfs_freeze(self.albedo_residual_model)
         dfs_freeze(self.light_estimator_model)
         # Note that we are not freezing Albedo gen model
+
+    def fix_new_weights(self):
+        dfs_freeze(self.albedo_residual_model_2)
 
 
 # Use following to fix weights of the model

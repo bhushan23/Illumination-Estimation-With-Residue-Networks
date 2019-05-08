@@ -119,25 +119,7 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
     face    = []
     depth   = []
 
-    if read_from_csv is None:
-        for img in sorted(glob.glob(syn_dir + '*/*_albedo_*')):
-            albedo.append(img)
-
-        for img in sorted(glob.glob(syn_dir + '*/*_face_*')):
-            face.append(img)    
-
-        for img in sorted(glob.glob(syn_dir + '*/*_normal_*')):
-            normal.append(img)
-
-        for img in sorted(glob.glob(syn_dir + '*/*_depth_*')):
-            depth.append(img)
-
-        for img in sorted(glob.glob(syn_dir + '*/*_mask_*')):
-            mask.append(img)
-
-        for img in sorted(glob.glob(syn_dir + '*/*_light_*.txt')):
-            sh.append(img)
-    else:
+    if read_from_csv is not None:
         df = pd.read_csv(read_from_csv)
         if read_first is not None and len(df) > read_first:
             df = df.sample(read_first, random_state=100)
@@ -155,17 +137,17 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
         for _, v in name_to_list.items():
             v[:] = [syn_dir + el for el in v]
 
-        # Merge Synthesized Celeba dataset for Psedo-Supervised training
-        if read_celeba_csv is not None:
-            df = pd.read_csv(read_celeba_csv)
-            if read_first is not None and len(df) > read_first:
-                df = df.sample(read_first, random_state=100)
-            albedo += list(df['albedo'])
-            face   += list(df['face'])
-            normal += list(df['normal'])
-            depth  += list(df['depth'])
-            mask   += list(df['mask'])
-            sh     += list(df['light'])
+    # Merge Synthesized Celeba dataset for Psedo-Supervised training
+    if read_celeba_csv is not None:
+        df = pd.read_csv(read_celeba_csv)
+        if read_first is not None and len(df) > read_first:
+            df = df.sample(read_first, random_state=100)
+        albedo += list(df['albedo'])
+        face   += list(df['face'])
+        normal += list(df['normal'])
+        depth  += list(df['depth'])
+        mask   += list(df['mask'])
+        sh     += list(df['light'])
 
     assert(len(albedo) == len(face) == len(normal) == len(depth) == len(mask) == len(sh))
     dataset_size = len(albedo)

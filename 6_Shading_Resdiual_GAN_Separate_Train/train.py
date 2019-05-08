@@ -298,7 +298,7 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
 
     # Load Synthetic dataset
     train_dataset, val_dataset = get_sfsnet_dataset(syn_dir=syn_data+'train/', read_from_csv=syn_train_csv, read_celeba_csv=celeba_train_csv, read_first=read_first, validation_split=2)
-    test_dataset, _ = get_sfsnet_dataset(syn_dir=syn_data+'test/', read_from_csv=syn_test_csv, read_celeba_csv=celeba_test_csv, read_first=100, validation_split=0)
+    test_dataset, _ = get_sfsnet_dataset(syn_dir=syn_data+'test/', read_from_csv=None, read_celeba_csv=celeba_test_csv, read_first=100, validation_split=0)
 
     syn_train_dl  = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     syn_val_dl    = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
@@ -324,16 +324,6 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
     os.system('mkdir -p {}'.format(out_syn_images_dir + 'val/'))
     os.system('mkdir -p {}'.format(out_syn_images_dir + 'test/'))
 
-    # Create Generator and Discriminator
-    
-    if use_cuda:
-        albedo_gen_model = albedo_gen_model.cuda()
-        albedo_dis_model = albedo_dis_model.cuda()
-    
-    # Init gen and disc
-    albedo_gen_model.apply(weights_init)
-    albedo_dis_model.apply(weights_init)
-
     # Collect model parameters
     model_parameters = sfs_net_model.parameters()
     optimizer = torch.optim.Adam(model_parameters, lr=lr) #, weight_decay=wt_decay)
@@ -345,10 +335,6 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
     g_optimizer = torch.optim.Adam(albedo_gen_model.parameters(), lr=lr)
     d_optimizer = torch.optim.Adam(albedo_dis_model.parameters(), lr=lr)
     
-    if use_cuda:
-        albedo_loss = albedo_loss.cuda()
-        recon_loss  = recon_loss.cuda()
-
     lamda_recon  = 1
     lamda_albedo = 10
 
@@ -377,9 +363,7 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
            
             # Apply Mask on input image
             # face = applyMask(face, mask)
-            predicted_normal, albedo_features, predicted_sh, shading_residual = sfs_net_model(face)
-            optimizer.zero_grad()
-            # GAN Training
+                        # GAN Training
             valid = torch.ones(albedo.shape[0], requires_grad = False)
             fake = torch.zeros(albedo.shape[0], requires_grad = False)
             
@@ -400,6 +384,7 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
                 real_sample = real_sample.cuda()
 
             # GAN loss
+            predicted_normal, albedo_features, predicted_sh, shading_residual = sfs_net_model(face)
             fake_albedo = albedo_gen_model(albedo_features)
             pred_fake   = albedo_dis_model(fake_albedo)
             # print(pred_fake.shape, valid.shape)
@@ -610,7 +595,7 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             wandb_log_images(wandb, real_sh_face, mask, 'Train Real SH Predicted Face', epoch, 'Train Real SH Predicted Face', path=file_name + '_real_sh_face.png')
             wandb_log_images(wandb, syn_face, mask, 'Train Real SH GT Face', epoch, 'Train Real SH GT Face', path=file_name + '_syn_gt_face.png')
 
-            v_total, v_albedo, v_recon = predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_val_dl, train_epoch_num=epoch, use_cuda=use_cuda,
+            v_total, v_albedo, v_recon = predict_sfsnet(sfs_net_model, albedo_gen_model, syn_val_dl, train_epoch_num=epoch, use_cuda=use_cuda,
                                                                          out_folder=out_syn_images_dir+'/val/', wandb=wandb)
             # wandb.log({log_prefix + 'Val Total loss': v_total, log_prefix + 'Val Albedo loss': v_albedo, log_prefix + 'Val Recon loss': v_recon})
             print('Val set results: Total Loss: {}, Albedo Loss: {},  Recon Loss: {}'.format(v_total, v_albedo, v_recon))
@@ -618,7 +603,7 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             # Model saving
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
         if epoch % 5 == 0:
-            t_total, t_albedo, t_recon = predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
+            t_total, t_albedo, t_recon = predict_sfsnet(sfs_net_model, albedo_gen_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
                                                                         out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='Test')
 
             # wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Recon loss': t_recon})
@@ -759,7 +744,7 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
             wandb_log_images(wandb, real_sh_face, mask, 'Train Real SH Predicted Face', epoch, 'Train Real SH Predicted Face', path=file_name + '_real_sh_face.png')
             wandb_log_images(wandb, syn_face, mask, 'Train Real SH GT Face', epoch, 'Train Real SH GT Face', path=file_name + '_syn_gt_face.png')
 
-            v_total, v_albedo, v_recon = predict_sfsnet(sfs_net_model, syn_val_dl, train_epoch_num=epoch, use_cuda=use_cuda,
+            v_total, v_albedo, v_recon = predict_sfsnet(sfs_net_model, albedo_gen_model, syn_val_dl, train_epoch_num=epoch, use_cuda=use_cuda,
                                                                          out_folder=out_syn_images_dir+'/val/', wandb=wandb)
             wandb.log({log_prefix + 'Val Total loss': v_total, log_prefix + 'Val Albedo loss': v_albedo, log_prefix + 'Val Recon loss': v_recon})
             
@@ -769,7 +754,7 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
             # Model saving
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
         if epoch % 5 == 0:
-            t_total, t_albedo, t_recon = predict_sfsnet(sfs_net_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
+            t_total, t_albedo, t_recon = predict_sfsnet(sfs_net_model, albedo_gen_model, syn_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
                                                                         out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='Test')
 
             wandb.log({log_prefix+'Test Total loss': t_total, log_prefix+'Test Albedo loss': t_albedo, log_prefix+'Test Recon loss': t_recon})
