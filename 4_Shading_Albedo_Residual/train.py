@@ -131,7 +131,7 @@ def predict_sfsnet(sfs_net_model, dl, train_epoch_num = 0,
         # Normal loss
         # current_normal_loss = normal_loss(predicted_normal, normal)
         # Albedo loss
-        current_albedo_loss = albedo_loss(predicted_albedo, albedo)
+        current_albedo_loss = albedo_loss(updated_albedo, albedo)
         # SH loss
         # current_sh_loss     = sh_loss(predicted_sh, sh)
         # Reconstruction loss
@@ -194,7 +194,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         recon_loss  = recon_loss.cuda()
 
     lamda_recon  = 1
-    lamda_albedo = 0.5
+    lamda_albedo = 0.8
 
     if use_cuda:
         albedo_loss = albedo_loss.cuda()
@@ -224,7 +224,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             # Normal loss
             # current_normal_loss = normal_loss(predicted_normal, normal)
             # Albedo loss
-            current_albedo_loss = albedo_loss(predicted_albedo, albedo)
+            current_albedo_loss = albedo_loss(updated_albedo, albedo)
             # SH loss
             # current_sh_loss     = sh_loss(predicted_sh, sh)
             # Reconstruction loss
