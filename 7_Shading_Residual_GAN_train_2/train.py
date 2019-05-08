@@ -94,13 +94,14 @@ def predict_sfsnet_gan(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, ga
 
     real_gan_iter = iter(gan_real_dl)
     for bix, data in enumerate(dl):
-        albedo, normal, mask, sh, face = data
+        albedo, normal, mask, sh, face, label = data
         if use_cuda:
             albedo = albedo.cuda()
             normal = normal.cuda()
             mask   = mask.cuda()
             sh     = sh.cuda()
             face   = face.cuda()
+            label  = label.cuda()
 
         # Apply Mask on input image
         # face = applyMask(face, mask)
@@ -123,9 +124,6 @@ def predict_sfsnet_gan(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, ga
             train_real_gan_iter = iter(gan_real_dl)
             real_data = next(train_real_gan_iter, None)
         
-        real_sample, _, _, _, _ = real_data
-        if use_cuda:
-            real_sample = real_sample.cuda()
         # GAN loss
         fake_albedo = albedo_gen_model(albedo_features)
         pred_fake   = albedo_dis_model(fake_albedo)
@@ -143,8 +141,8 @@ def predict_sfsnet_gan(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, ga
         total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + loss_GAN 
 
         # Real loss
-        pred_real = albedo_dis_model(real_sample)
-        loss_real = gan_loss(pred_real, valid)
+        pred_real = albedo_dis_model(albedo)
+        loss_real = gan_loss(pred_real, label)
         # Fake loss
         pred_fake = albedo_dis_model(fake_albedo.detach())
         loss_fake = gan_loss(pred_fake, fake)
@@ -214,13 +212,14 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, dl, train_epoch_num = 0,
     rloss = 0 # Reconstruction loss
 
     for bix, data in enumerate(dl):
-        albedo, normal, mask, sh, face = data
+        albedo, normal, mask, sh, face, label = data
         if use_cuda:
             albedo = albedo.cuda()
             normal = normal.cuda()
             mask   = mask.cuda()
             sh     = sh.cuda()
             face   = face.cuda()
+            label  = label.cuda()
 
         # Apply Mask on input image
         # face = applyMask(face, mask)
@@ -353,17 +352,17 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
         disloss = 0 # Dis Loss
 
         for bix, data in enumerate(syn_train_dl):
-            albedo, normal, mask, sh, face = data
+            albedo, normal, mask, sh, face, label = data
             if use_cuda:
                 albedo = albedo.cuda()
                 normal = normal.cuda()
                 mask   = mask.cuda()
                 sh     = sh.cuda()
                 face   = face.cuda()
+                label  = label.cuda()
            
             # Apply Mask on input image
-            # face = applyMask(face, mask)
-                        # GAN Training
+            # GAN Training
             valid = torch.ones(albedo.shape[0], requires_grad = False)
             fake = torch.zeros(albedo.shape[0], requires_grad = False)
             
@@ -373,16 +372,6 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
             # Train Albedo Generator
             g_optimizer.zero_grad()
             
-            # Get real sample
-            real_data = next(train_real_gan_iter, None)
-            if real_data is None:
-                train_real_gan_iter = iter(gan_real_train_dl)
-                real_data = next(train_real_gan_iter, None)
-
-            real_sample, _, _, _, _ = real_data 
-            if use_cuda:
-                real_sample = real_sample.cuda()
-
             # GAN loss
             predicted_normal, albedo_features, predicted_sh, shading_residual = sfs_net_model(face)
             fake_albedo = albedo_gen_model(albedo_features)
@@ -406,8 +395,8 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
             # Training Albedo Discriminator
             d_optimizer.zero_grad()
             # Real loss
-            pred_real = albedo_dis_model(real_sample)
-            loss_real = gan_loss(pred_real, valid)
+            pred_real = albedo_dis_model(albedo)
+            loss_real = gan_loss(pred_real, label)
             # Fake loss
             pred_fake = albedo_dis_model(fake_albedo.detach())
             loss_fake = gan_loss(pred_fake, fake)
@@ -530,7 +519,7 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
         rloss = 0 # Reconstruction loss
 
         for bix, data in enumerate(syn_train_dl):
-            albedo, normal, mask, sh, face = data
+            albedo, normal, mask, sh, face, _ = data
             if use_cuda:
                 albedo = albedo.cuda()
                 normal = normal.cuda()

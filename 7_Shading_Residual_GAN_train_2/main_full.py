@@ -90,7 +90,7 @@ def main():
     # return 
 
     # Init WandB for logging
-    wandb.init(project='SfSNet-CelebA-GAN-Separate-Training-Shading-Residual-PreTrained')
+    wandb.init(project='SfSNet-CelebA-GAN-Separate-Training-Version-2-Shading-Residual-PreTrained')
     wandb.log({'lr':lr, 'weight decay': wt_decay})
 
     # Initialize models

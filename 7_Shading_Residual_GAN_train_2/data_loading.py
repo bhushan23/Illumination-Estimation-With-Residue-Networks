@@ -118,6 +118,7 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
     normal  = []
     face    = []
     depth   = []
+    label   = []
 
     if read_from_csv is not None:
         df = pd.read_csv(read_from_csv)
@@ -130,6 +131,7 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
         depth  = list(df['depth'])
         mask   = list(df['mask'])
         sh     = list(df['light'])
+        label  = [1.0] * len(sh)
 
         name_to_list = {'albedo' : albedo, 'normal' : normal, 'depth' : depth, \
                     'mask' : mask, 'face' : face, 'light' : sh}
@@ -148,8 +150,9 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
         depth  += list(df['depth'])
         mask   += list(df['mask'])
         sh     += list(df['light'])
-
-    assert(len(albedo) == len(face) == len(normal) == len(depth) == len(mask) == len(sh))
+        label  += [0.0] * len(df)
+    
+    assert(len(albedo) == len(face) == len(normal) == len(depth) == len(mask) == len(sh) == len(label))
     dataset_size = len(albedo)
     validation_count = int (validation_split * dataset_size / 100)
     train_count      = dataset_size - validation_count
@@ -160,7 +163,7 @@ def get_sfsnet_dataset(syn_dir=None, read_from_csv=None, read_celeba_csv=None, r
                 transforms.ToTensor()
             ])
     
-    full_dataset = SfSNetDataset(albedo, face, normal, mask, sh, transform)  
+    full_dataset = SfSNetDataset(albedo, face, normal, mask, sh, label, transform)  
     # TODO: This will vary dataset run-to-run
     # Shall we just split manually to ensure run-to-run train-val dataset is same?
     train_dataset, val_dataset = random_split(full_dataset, [train_count, validation_count])
@@ -242,13 +245,14 @@ def generate_celeba_synthesize(sfs_net_model, dl, train_epoch_num = 0,
     return tloss / len_dl
 
 class SfSNetDataset(Dataset):
-    def __init__(self, albedo, face, normal, mask, sh, transform = None):
+    def __init__(self, albedo, face, normal, mask, sh, label, transform = None):
         self.albedo = albedo
         self.face   = face
         self.normal = normal
         self.mask   = mask
         self.sh     = sh
         self.transform = transform
+        self.label  = label
         self.dataset_len = len(self.albedo)
         self.mask_transform = transforms.Compose([
                               transforms.Resize(IMAGE_SIZE),
@@ -274,7 +278,8 @@ class SfSNetDataset(Dataset):
             mask   = self.mask_transform(Image.open(self.mask[index]))
         pd_sh  = pd.read_csv(self.sh[index], sep='\t', header = None)
         sh     = torch.tensor(pd_sh.values).type(torch.float).reshape(-1)
-        return albedo, normal, mask, sh, face
+        label  = torch.tensor([self.label[index]]).type(torch.float)
+        return albedo, normal, mask, sh, face, label
 
     def __len__(self):
         return self.dataset_len
