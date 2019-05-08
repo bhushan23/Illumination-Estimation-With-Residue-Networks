@@ -28,18 +28,22 @@ def interpolate(model_dir, input_path, output_path):
   print('Data size:', len(dl))
 
   # Load model
- 
-  sfs_net_model         = SfsNetPipeline()
-  if use_cuda:
-      sfs_net_model = sfs_net_model.cuda()
-  
-  sfs_net_model.load_state_dict(torch.load(model_dir + 'sfs_net_model.pkl'))
+
+  sfs_net_model    = SfsNetPipeline()
+  albedo_gen_model = AlbedoGenerationNet()
+
+  if model_dir is not None:
+     sfs_net_model.load_state_dict(torch.load(model_dir + 'sfs_net_model.pkl'))
+     albedo_gen_model.load_state_dict(torch.load(model_dir + 'albedo_gen_model.pkl'))
 
   for bix, (data, _) in enumerate(dl):
     if use_cuda:
       data = data.cuda()
 
-    normal, albedo, sh, shading, recon = sfs_net_model(data)
+    normal, albedo_ft, sh, shading_res = sfs_net_model(data)
+    albedo = albedo_gen_model(albedo_ft)
+    shading = get_shading(normal, sh)
+    recon = reconstruct_image(shading, albedo)
     output_dir = output_path + str(bix)
 
     # normal = normal * 128 + 128

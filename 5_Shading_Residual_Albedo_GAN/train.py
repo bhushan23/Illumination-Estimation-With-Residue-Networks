@@ -351,7 +351,7 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
 
         if epoch % 1 == 0:
             print('Training set results: Total Loss: {}, Albedo Loss: {}, Recon Loss: {} Generator Loss: {}, Discriminator Loss: {}'.format(tloss / syn_train_len, \
-                   aloss / syn_train_len, rloss / syn_train_len, ganloss / syn_train_len, disloss / syn_train_loss))
+                   aloss / syn_train_len, rloss / syn_train_len, ganloss / syn_train_len, disloss / syn_train_len))
             # Log training info
             wandb.log({log_prefix + 'Train Total loss': tloss/syn_train_len, log_prefix + 'Train Albedo loss': aloss/syn_train_len, log_prefix + 'Train Recon loss': rloss/syn_train_len, log_prefix + 'Train GAN loss': ganloss/syn_train_len, log_prefix + 'Train Dis loss': disloss/syn_train_len })
             
@@ -384,6 +384,9 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             
             # Model saving
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
+            torch.save(albedo_gen_model.state_dict(), model_checkpoint_dir + 'albedo_gen_model.pkl')
+            torch.save(albedo_dis_model.state_dict(), model_checkpoint_dir + 'albedo_dis_model.pkl')
+
         if epoch % 5 == 0:
             t_total, t_albedo, t_recon, t_gloss, t_dloss = predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_test_dl, gan_real_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
                                                                         out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='Test')
