@@ -248,6 +248,7 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
     
     lamda_recon  = 1
     lamda_albedo = 1
+    lamda_gan    = 0.4
 
     if use_cuda:
         # albedo_loss = albedo_loss.cuda()
@@ -283,8 +284,6 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             if use_cuda:
                 valid = valid.cuda()
                 fake = fake.cuda()
-            # Train Albedo Generator
-            g_optimizer.zero_grad()
             
             # Get real sample
             real_data = next(train_real_gan_iter, None)
@@ -296,6 +295,23 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             if use_cuda:
                 real_sample = real_sample.cuda()
 
+            # Training Albedo Discriminator
+            d_optimizer.zero_grad()
+            # Real loss
+            pred_real = albedo_dis_model(real_sample)
+            loss_real = gan_loss(pred_real, valid)
+            # Fake loss
+            pred_fake = albedo_dis_model(fake_albedo.detach())
+            loss_fake = gan_loss(pred_fake, fake)
+            # Total loss
+            loss_d = (loss_real + loss_fake) / 2
+
+            loss_d.backward()
+            d_optimizer.step()
+
+            # Train Albedo Generator
+            g_optimizer.zero_grad()
+            optimizer.zero_grad() 
             # GAN loss
             fake_albedo = albedo_gen_model(albedo_features)
             pred_fake   = albedo_dis_model(fake_albedo)
@@ -312,23 +328,9 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             current_recon_loss  = recon_loss(out_recon, face)
 
             # total_loss = lamda_albedo * current_albedo_loss + alamda_recon * current_recon_loss + loss_GAN 
-            total_loss = lamda_recon * current_recon_loss + loss_GAN 
+            total_loss = lamda_recon * current_recon_loss + lamda_gan * loss_GAN 
             total_loss.backward()
             g_optimizer.step()
-
-            # Training Albedo Discriminator
-            d_optimizer.zero_grad()
-            # Real loss
-            pred_real = albedo_dis_model(real_sample)
-            loss_real = gan_loss(pred_real, valid)
-            # Fake loss
-            pred_fake = albedo_dis_model(fake_albedo.detach())
-            loss_fake = gan_loss(pred_fake, fake)
-            # Total loss
-            loss_d = (loss_real + loss_fake) / 2
-
-            loss_d.backward()
-            d_optimizer.step()
             optimizer.step()
 
             # Logging for display and debugging purposes
