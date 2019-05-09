@@ -32,6 +32,10 @@ def interpolate(model_dir, input_path, output_path):
   sfs_net_model    = SfsNetPipeline()
   albedo_gen_model = AlbedoGenerationNet()
 
+  if use_cuda:
+    sfs_net_model = sfs_net_model.cuda()
+    albedo_gen_model = albedo_gen_model.cuda()
+
   if model_dir is not None:
      sfs_net_model.load_state_dict(torch.load(model_dir + 'sfs_net_model.pkl'))
      albedo_gen_model.load_state_dict(torch.load(model_dir + 'albedo_gen_model.pkl'))
