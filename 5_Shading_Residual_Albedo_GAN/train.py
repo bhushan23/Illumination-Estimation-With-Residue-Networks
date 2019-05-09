@@ -74,15 +74,15 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, gan_re
     # debugging flag to dump image
     fix_bix_dump = 0
 
-    albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
-    recon_loss  = nn.SmoothL1Loss() #nn.L1Loss() 
-    gan_loss    = torch.nn.MSELoss()
+    # albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
+    recon_loss  = nn.MSELoss() #SmoothL1Loss() #nn.L1Loss() 
+    gan_loss    = nn.MSELoss()
 
-    lamda_recon  = 0.5
-    lamda_albedo = 0.5
+    lamda_recon  = 1
+    # lamda_albedo = 0.5
 
     if use_cuda:
-        albedo_loss = albedo_loss.cuda()
+        # albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
         gan_loss    = gan_loss.cuda()
 
@@ -137,10 +137,11 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, gan_re
         out_recon = reconstruct_image(updated_shading, fake_albedo)
 
         # albedo recon loss
-        current_albedo_loss = albedo_loss(fake_albedo, albedo)
+        # current_albedo_loss = albedo_loss(fake_albedo, albedo)
         current_recon_loss  = recon_loss(out_recon, face)
 
-        total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + loss_GAN 
+        # total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + loss_GAN 
+        total_loss = lamda_recon * current_recon_loss + loss_GAN 
 
         # Real loss
         pred_real = albedo_dis_model(real_sample)
@@ -154,12 +155,11 @@ def predict_sfsnet(sfs_net_model, albedo_gen_model, albedo_dis_model, dl, gan_re
         # Logging for display and debugging purposes
         tloss += total_loss.item()
         # nloss += current_normal_loss.item()
-        aloss += current_albedo_loss.item()
+        aloss += 0 # current_albedo_loss.item()
         # shloss += current_sh_loss.item()
         rloss += current_recon_loss.item()
         ganloss += loss_GAN.item()
         disloss += loss_d.item()
-
 
         if bix == fix_bix_dump:
             # save predictions in log folder
@@ -238,23 +238,19 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
     # Collect model parameters
     model_parameters = sfs_net_model.parameters()
     optimizer = torch.optim.Adam(model_parameters, lr=lr) #, weight_decay=wt_decay)
-    albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
-    recon_loss  = nn.SmoothL1Loss() #nn.L1Loss() 
-    gan_loss = torch.nn.MSELoss()
+    # albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
+    recon_loss = nn.MSELoss()  #nn.L1Loss() 
+    gan_loss = nn.MSELoss()
 
     # Collect and initialize gen-dis optimizers
     g_optimizer = torch.optim.Adam(albedo_gen_model.parameters(), lr=lr)
     d_optimizer = torch.optim.Adam(albedo_dis_model.parameters(), lr=lr)
     
-    if use_cuda:
-        albedo_loss = albedo_loss.cuda()
-        recon_loss  = recon_loss.cuda()
-
-    lamda_recon  = 10
+    lamda_recon  = 1
     lamda_albedo = 1
 
     if use_cuda:
-        albedo_loss = albedo_loss.cuda()
+        # albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
         gan_loss    = gan_loss.cuda()
 
@@ -312,10 +308,11 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             out_recon = reconstruct_image(updated_shading, fake_albedo)
 
             # albedo recon loss
-            current_albedo_loss = albedo_loss(fake_albedo, albedo)
+            # current_albedo_loss = albedo_loss(fake_albedo, albedo)
             current_recon_loss  = recon_loss(out_recon, face)
 
-            total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + loss_GAN 
+            # total_loss = lamda_albedo * current_albedo_loss + alamda_recon * current_recon_loss + loss_GAN 
+            total_loss = lamda_recon * current_recon_loss + loss_GAN 
             total_loss.backward()
             g_optimizer.step()
 
@@ -337,12 +334,11 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             # Logging for display and debugging purposes
             tloss += total_loss.item()
             # nloss += current_normal_loss.item()
-            aloss += current_albedo_loss.item()
+            aloss += 0 # current_albedo_loss.item()
             # shloss += current_sh_loss.item()
             rloss += current_recon_loss.item()
             ganloss += loss_GAN.item()
             disloss += loss_d.item()
-
 
         print('Epoch: {} - Total Loss: {}, Albedo Loss: {}, Recon Loss: {}, Generator Loss: {}, Discriminator Loss: {}'.format(epoch, tloss, aloss, rloss, ganloss, disloss))
         log_prefix = 'Syn Data'
@@ -432,12 +428,12 @@ def train_with_shading_loss(sfs_net_model, syn_data, celeba_data=None, read_firs
     # Collect model parameters
     model_parameters = sfs_net_model.parameters()
     optimizer = torch.optim.Adam(model_parameters, lr=lr, weight_decay=wt_decay)
-    albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
-    recon_loss  = nn.SmoothL1Loss() #nn.L1Loss() 
-    shading_loss = nn.SmoothL1Loss()
+    # albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
+    recon_loss  = nn.MSELoss() #nn.L1Loss() 
+    shading_loss = nn.MSELoss()
 
     if use_cuda:
-        albedo_loss = albedo_loss.cuda()
+        # albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
         shading_loss = shading_loss.cuda()
 
