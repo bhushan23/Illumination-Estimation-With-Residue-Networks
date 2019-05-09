@@ -360,7 +360,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     normal_loss = nn.SmoothL1Loss() # nn.L1Loss()
     albedo_loss = nn.SmoothL1Loss() # nn.L1Loss()
     sh_loss     = nn.MSELoss()
-    recon_loss  = nn.SmoothL1Loss() #nn.L1Loss() 
+    recon_loss  = nn.MSELoss() #nn.L1Loss() 
 
     if use_cuda:
         normal_loss = normal_loss.cuda()
@@ -368,7 +368,7 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         sh_loss     = sh_loss.cuda()
         recon_loss  = recon_loss.cuda()
 
-    lamda_recon  = 0.5 #0.5
+    lamda_recon  = 1 #0.5
     lamda_albedo = 0.5 #0.5
     lamda_normal = 0.5
     lamda_sh     = 0.1

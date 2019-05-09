@@ -98,12 +98,13 @@ def main():
     else:
         print('Initializing weights')
         sfs_net_model.apply(weights_init)
+    sfs_net_model.fix_weights()
 
     os.system('mkdir -p {}'.format(args.log_dir))
     with open(args.log_dir+'/details.txt', 'w') as f:
         f.write(args.details)
 
-    wandb.watch(sfs_net_model)
+    # wandb.watch(sfs_net_model)
            
     # 1. Train on both Synthetic and Real (Celeba) dataset
     train(sfs_net_model, syn_data, celeba_data=celeba_data, read_first=read_first,\
