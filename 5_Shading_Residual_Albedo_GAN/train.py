@@ -301,7 +301,8 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             pred_real = albedo_dis_model(real_sample)
             loss_real = gan_loss(pred_real, valid)
             # Fake loss
-            pred_fake = albedo_dis_model(fake_albedo.detach())
+            fake_gen_albedo = albedo_gen_model(albedo_features)
+            pred_fake = albedo_dis_model(fake_gen_albedo.detach())
             loss_fake = gan_loss(pred_fake, fake)
             # Total loss
             loss_d = (loss_real + loss_fake) / 2

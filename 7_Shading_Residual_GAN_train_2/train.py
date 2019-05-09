@@ -455,6 +455,8 @@ def gan_based_train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data,
             
             # Model saving
             torch.save(sfs_net_model.state_dict(), model_checkpoint_dir + 'sfs_net_model.pkl')
+            torch.save(albedo_gen_model.state_dict(), model_checkpoint_dir + 'albedo_gen_model.pkl')
+            torch.save(albedo_dis_model.state_dict(), model_checkpoint_dir + 'albedo_dis_model.pkl')
         if epoch % 5 == 0:
             t_total, t_albedo, t_recon, t_gloss, t_dloss = predict_sfsnet_gan(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_test_dl, gan_real_test_dl, train_epoch_num=epoch, use_cuda=use_cuda, 
                                                                         out_folder=out_syn_images_dir + '/test/', wandb=wandb, suffix='GAN Test')
