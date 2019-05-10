@@ -398,11 +398,11 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
             
             # Loss computation
             # Normal loss
-            current_normal_loss = 0 #normal_loss(predicted_normal, normal)
+            current_normal_loss = normal_loss(predicted_normal, normal)
             # Albedo loss
             current_albedo_loss = albedo_loss(predicted_albedo, albedo)
             # SH loss
-            current_sh_loss     = 0 #sh_loss(predicted_sh, sh)
+            current_sh_loss     = sh_loss(predicted_sh, sh)
 
             # Reconstruction loss
             # Edge case: Shading generation requires denormalized normal and sh
