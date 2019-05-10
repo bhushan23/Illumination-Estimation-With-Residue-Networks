@@ -102,11 +102,12 @@ class sfsNetShading(nn.Module):
 
         return shading
 
+
 # Base methods for creating convnet
 def get_conv(in_channels, out_channels, kernel_size=3, padding=0, stride=1, dropout=0):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, 
-                    padding=padding, bias=False),
+                    padding=padding),
         nn.BatchNorm2d(out_channels),
         nn.ReLU(inplace=True)
     )
