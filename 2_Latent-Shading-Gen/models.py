@@ -118,7 +118,7 @@ class ResNetBlock(nn.Module):
     """
     def __init__(self, in_planes, out_planes, stride=1):
         super(ResNetBlock, self).__init__()
-      self.res = nn.Sequential(
+        self.res = nn.Sequential(
             nn.BatchNorm2d(in_planes),
             nn.ReLU(inplace=True),
             nn.Conv2d(in_planes, in_planes, 3, stride=1, padding=1),
