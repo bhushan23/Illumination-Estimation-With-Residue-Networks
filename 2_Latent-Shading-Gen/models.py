@@ -108,8 +108,7 @@ def get_conv(in_channels, out_channels, kernel_size=3, padding=0, stride=1, drop
         nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, 
                     padding=padding, bias=False),
         nn.BatchNorm2d(out_channels),
-        nn.ReLU(inplace=True),
-        nn.Dropout(dropout)
+        nn.ReLU(inplace=True)
     )
 
 # SfSNet Models
@@ -270,10 +269,10 @@ class SfsNetPipeline(nn.Module):
         super(SfsNetPipeline, self).__init__()
         self.conv_model = baseFeaturesExtractions()
         self.normal_residual_model = NormalResidualBlock()
-        self.albedo_residual_model = AlbedoResidualBlock()
         self.normal_gen_model      = NormalGenerationNet()
-        self.albedo_gen_model      = AlbedoGenerationNet()
+        self.albedo_residual_model = AlbedoResidualBlock()
         self.albedo_residual_model_2 = AlbedoResidualBlock()
+        self.albedo_gen_model      = AlbedoGenerationNet()
         self.shading_model         = ShadingGeneration()
         self.neural_light_model    = NeuralLatentLightEstimator()
 
