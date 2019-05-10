@@ -88,19 +88,7 @@ def main():
     wandb.log({'lr':lr, 'weight decay': wt_decay})
 
     # Initialize models
-    conv_model            = baseFeaturesExtractions()
-    normal_residual_model = NormalResidualBlock()
-    albedo_residual_model = AlbedoResidualBlock()
-    normal_gen_model      = NormalGenerationNet()
-    albedo_gen_model      = AlbedoGenerationNet()
-    shading_trad_model    = sfsNetShading()
-    shading_model         = ShadingGeneration()
-    image_recon_model     = ReconstructImage()
-    neural_light_model    = NeuralLatentLightEstimator()
-    
-    sfs_net_model      = SfsNetPipeline(conv_model, normal_residual_model, albedo_residual_model, \
-                                            normal_gen_model, albedo_gen_model, shading_trad_model, \
-                                            shading_model, neural_light_model, image_recon_model)
+    sfs_net_model      = SfsNetPipeline()
 
     if use_cuda:
         sfs_net_model = sfs_net_model.cuda()
