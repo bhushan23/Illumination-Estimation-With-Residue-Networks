@@ -309,15 +309,15 @@ class SfsNetPipeline(nn.Module):
 
         # 3 a. Generate Normal
         predicted_normal = self.normal_gen_model(out_normal_features)
-        # 3 b. Generate Albedo
-        predicted_albedo = self.albedo_gen_model(out_albedo_features)
-        # 3 c. Estimate lighting
+        # 3 b. Estimate lighting
         # First, concat conv, normal and albedo features over channels dimension
         all_features = torch.cat((out_features, out_normal_features, out_albedo_features), dim=1)
         # Predict SH
         predicted_sh = self.light_estimator_model(all_features)
         # 3 d. Estimate Neural Light for residual correctness
         out_albedo_features_2 = self.albedo_residual_model_2(out_features)
+        predicted_albedo = self.albedo_gen_model(out_albedo_features_2)
+
         new_features = torch.cat((out_features, out_normal_features, out_albedo_features_2), dim=1)
         predicted_neural_light = self.neural_light_model(new_features)
 
@@ -574,7 +574,6 @@ def load_model_from_pretrained(src_model, dst_model):
     dst_model['albedo_residual_model_2.bn1.bias'] = src_model['areso.0.bias']
     dst_model['albedo_residual_model_2.bn1.running_mean'] = src_model['areso.0.running_mean']
     dst_model['albedo_residual_model_2.bn1.running_var'] = src_model['areso.0.running_var']
-    
     dst_model['albedo_gen_model.conv1.0.weight'] = src_model['aconv1.conv.0.weight']
     dst_model['albedo_gen_model.conv1.0.bias'] = src_model['aconv1.conv.0.bias']
     dst_model['albedo_gen_model.conv1.1.weight'] = src_model['aconv1.conv.1.weight']
