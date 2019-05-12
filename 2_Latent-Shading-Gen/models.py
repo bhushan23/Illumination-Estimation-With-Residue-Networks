@@ -294,14 +294,13 @@ class SfsNetPipeline(nn.Module):
 
         # 3 a. Generate Normal
         predicted_normal = self.normal_gen_model(out_normal_features)
+        # 3 b. Generate albedo
+        predicted_albedo = self.albedo_gen_model(out_albedo_features)
         # 3 c. Estimate lighting
         # First, concat conv, normal and albedo features over channels dimension
         all_features = torch.cat((out_features, out_normal_features, out_albedo_features), dim=1)
         # 3 d. Estimate Neural Light for residual correctness
-        out_albedo_features_2 = self.albedo_residual_model_2(out_features)
-        new_features = torch.cat((out_features, out_normal_features, out_albedo_features_2), dim=1)
-        predicted_albedo = self.albedo_gen_model(out_albedo_features_2)
-        predicted_neural_light = self.neural_light_model(new_features)
+        predicted_neural_light = self.neural_light_model(all_features)
 
         # 4. Generate shading
         normal_nn_light = torch.cat((predicted_normal, predicted_neural_light), dim=1)
