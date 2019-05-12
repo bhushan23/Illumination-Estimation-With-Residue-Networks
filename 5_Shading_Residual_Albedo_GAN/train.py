@@ -238,7 +238,7 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
     # Collect model parameters
     model_parameters = sfs_net_model.parameters()
     optimizer = torch.optim.Adam(model_parameters, lr=lr) #, weight_decay=wt_decay)
-    # albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
+    albedo_loss = nn.L1Loss()
     recon_loss = nn.MSELoss()  #nn.L1Loss() 
     gan_loss = nn.MSELoss()
 
@@ -247,11 +247,11 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
     d_optimizer = torch.optim.Adam(albedo_dis_model.parameters(), lr=lr)
     
     lamda_recon  = 1
-    lamda_albedo = 1
-    lamda_gan    = 0.4
+    lamda_albedo = 0.2
+    lamda_gan    = 0.01
 
     if use_cuda:
-        # albedo_loss = albedo_loss.cuda()
+        albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
         gan_loss    = gan_loss.cuda()
 
@@ -325,11 +325,11 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             out_recon = reconstruct_image(updated_shading, fake_albedo)
 
             # albedo recon loss
-            # current_albedo_loss = albedo_loss(fake_albedo, albedo)
+            current_albedo_loss = albedo_loss(fake_albedo, albedo)
             current_recon_loss  = recon_loss(out_recon, face)
 
-            # total_loss = lamda_albedo * current_albedo_loss + alamda_recon * current_recon_loss + loss_GAN 
-            total_loss = lamda_recon * current_recon_loss + lamda_gan * loss_GAN 
+            total_loss = lamda_albedo * current_albedo_loss + lamda_recon * current_recon_loss + lamda_gan * loss_GAN 
+            # total_loss = lamda_recon * current_recon_loss + lamda_gan * loss_GAN 
             total_loss.backward()
             g_optimizer.step()
             optimizer.step()
@@ -337,7 +337,7 @@ def train(sfs_net_model, albedo_gen_model, albedo_dis_model, syn_data, celeba_da
             # Logging for display and debugging purposes
             tloss += total_loss.item()
             # nloss += current_normal_loss.item()
-            aloss += 0 # current_albedo_loss.item()
+            aloss += current_albedo_loss.item()
             # shloss += current_sh_loss.item()
             rloss += current_recon_loss.item()
             ganloss += loss_GAN.item()

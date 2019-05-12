@@ -47,7 +47,8 @@ def interpolate(model_dir, input_path, output_path):
     normal, albedo_ft, sh, shading_res = sfs_net_model(data)
     albedo = albedo_gen_model(albedo_ft)
     shading = get_shading(normal, sh)
-    recon = reconstruct_image(shading, albedo)
+    updated_shading = shading + shading_res
+    recon = reconstruct_image(updated_shading, albedo)
     output_dir = output_path + str(bix)
 
     # normal = normal * 128 + 128
@@ -55,7 +56,9 @@ def interpolate(model_dir, input_path, output_path):
     save_image(data, path=output_dir+'_face.png')
     save_image(normal, path=output_dir+'_normal.png')
     save_image(albedo, path=output_dir+'_albedo.png')
+    save_image(updated_shading, path=output_dir+'_updated_shading.png')
     save_image(shading, path=output_dir+'_shading.png')
+    save_image(shading_res, path=output_dir+'_shading_residual.png')
     save_image(recon, path=output_dir+'_recon.png')
     sh = sh.cpu().detach().numpy()
     np.savetxt(output_dir+'_light.txt', sh, delimiter='\t')

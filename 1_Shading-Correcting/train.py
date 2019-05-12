@@ -369,9 +369,9 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
         recon_loss  = recon_loss.cuda()
 
     lamda_recon  = 1 #0.5
-    lamda_albedo = 0.5 #0.5
-    lamda_normal = 0.5
-    lamda_sh     = 0.1
+    lamda_albedo = 0 #0.5
+    lamda_normal = 0
+    lamda_sh     = 0
 
     syn_train_len    = len(syn_train_dl)
 

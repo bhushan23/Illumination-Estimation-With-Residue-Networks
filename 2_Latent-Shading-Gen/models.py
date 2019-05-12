@@ -317,7 +317,6 @@ class SfsNetPipeline(nn.Module):
         dfs_freeze(self.normal_residual_model)
         dfs_freeze(self.normal_gen_model)
         dfs_freeze(self.albedo_residual_model)
-        dfs_freeze(self.light_estimator_model)
         # Note that we are not freezing Albedo gen model
 
 
