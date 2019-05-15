@@ -278,6 +278,7 @@ class SfsNetPipeline(nn.Module):
         self.normal_gen_model      = NormalGenerationNet()
         self.albedo_residual_model = AlbedoResidualBlock()
         self.albedo_gen_model      = AlbedoGenerationNet()
+        self.albedo_residual_model_2 = AlbedoResidualBlock()
         self.light_estimator_model = LightEstimator()
         self.shading_residual_model = ShadingResidualEstimator()
 
@@ -298,22 +299,25 @@ class SfsNetPipeline(nn.Module):
         
         # 3 a. Generate Normal
         predicted_normal = self.normal_gen_model(out_normal_features)
-        # 3 b. Generate Albedo
-        predicted_albedo = self.albedo_gen_model(out_albedo_features)
-        # 3 c. Estimate lighting
+        # 3 b. Estimate lighting
         # First, concat conv, normal and albedo features over channels dimension
         all_features = torch.cat((out_features, out_normal_features, out_albedo_features), dim=1)
         # Predict SH
         predicted_sh = self.light_estimator_model(all_features)
 
-        # 4. Generate shading
+        # 4. Collect new albedo features
+        out_albedo_features_2 = self.albedo_residual_model_2(out_features)
+        new_features = torch.cat((out_features, out_normal_features, out_albedo_features_2), dim=1)
+        predicted_albedo = self.albedo_gen_model(out_albedo_features_2)
+        
+        # 5. Generate shading
         out_shading = get_shading(predicted_normal, predicted_sh)
 
-        # 5. Get Shading Residual
-        shading_residual = self.shading_residual_model(all_features)
+        # 6. Get Shading Residual
+        shading_residual = self.shading_residual_model(new_features)
         updated_shading = out_shading + shading_residual
 
-        # 6. Reconstruction of image
+        # 7. Reconstruction of image
         out_recon = reconstruct_image(updated_shading, predicted_albedo)
 
         return predicted_normal, predicted_albedo, predicted_sh, out_shading, shading_residual, updated_shading, out_recon
@@ -509,6 +513,71 @@ def load_model_from_pretrained(src_model, dst_model):
     dst_model['albedo_gen_model.conv2.1.running_var'] = src_model['aconv2.conv.1.running_var']
     dst_model['albedo_gen_model.conv3.weight'] = src_model['aout.weight']
     dst_model['albedo_gen_model.conv3.bias'] = src_model['aout.bias']
+    dst_model['albedo_residual_model_2.block1.res.0.weight'] = src_model['ares1.res.0.weight']
+    dst_model['albedo_residual_model_2.block1.res.0.bias'] = src_model['ares1.res.0.bias']
+    dst_model['albedo_residual_model_2.block1.res.0.running_mean'] = src_model['ares1.res.0.running_mean']
+    dst_model['albedo_residual_model_2.block1.res.0.running_var'] = src_model['ares1.res.0.running_var']
+    dst_model['albedo_residual_model_2.block1.res.2.weight'] = src_model['ares1.res.2.weight']
+    dst_model['albedo_residual_model_2.block1.res.2.bias'] = src_model['ares1.res.2.bias']
+    dst_model['albedo_residual_model_2.block1.res.3.weight'] = src_model['ares1.res.3.weight']
+    dst_model['albedo_residual_model_2.block1.res.3.bias'] = src_model['ares1.res.3.bias']
+    dst_model['albedo_residual_model_2.block1.res.3.running_mean'] = src_model['ares1.res.3.running_mean']
+    dst_model['albedo_residual_model_2.block1.res.3.running_var'] = src_model['ares1.res.3.running_var']
+    dst_model['albedo_residual_model_2.block1.res.5.weight'] = src_model['ares1.res.5.weight']
+    dst_model['albedo_residual_model_2.block1.res.5.bias'] = src_model['ares1.res.5.bias']
+    dst_model['albedo_residual_model_2.block2.res.0.weight'] = src_model['ares2.res.0.weight']
+    dst_model['albedo_residual_model_2.block2.res.0.bias'] = src_model['ares2.res.0.bias']
+    dst_model['albedo_residual_model_2.block2.res.0.running_mean'] = src_model['ares2.res.0.running_mean']
+    dst_model['albedo_residual_model_2.block2.res.0.running_var'] = src_model['ares2.res.0.running_var']
+    dst_model['albedo_residual_model_2.block2.res.2.weight'] = src_model['ares2.res.2.weight']
+    dst_model['albedo_residual_model_2.block2.res.2.bias'] = src_model['ares2.res.2.bias']
+    dst_model['albedo_residual_model_2.block2.res.3.weight'] = src_model['ares2.res.3.weight']
+    dst_model['albedo_residual_model_2.block2.res.3.bias'] = src_model['ares2.res.3.bias']
+    dst_model['albedo_residual_model_2.block2.res.3.running_mean'] = src_model['ares2.res.3.running_mean']
+    dst_model['albedo_residual_model_2.block2.res.3.running_var'] = src_model['ares2.res.3.running_var']
+    dst_model['albedo_residual_model_2.block2.res.5.weight'] = src_model['ares2.res.5.weight']
+    dst_model['albedo_residual_model_2.block2.res.5.bias'] = src_model['ares2.res.5.bias']
+    dst_model['albedo_residual_model_2.block3.res.0.weight'] = src_model['ares3.res.0.weight']
+    dst_model['albedo_residual_model_2.block3.res.0.bias'] = src_model['ares3.res.0.bias']
+    dst_model['albedo_residual_model_2.block3.res.0.running_mean'] = src_model['ares3.res.0.running_mean']
+    dst_model['albedo_residual_model_2.block3.res.0.running_var'] = src_model['ares3.res.0.running_var']
+    dst_model['albedo_residual_model_2.block3.res.2.weight'] = src_model['ares3.res.2.weight']
+    dst_model['albedo_residual_model_2.block3.res.2.bias'] = src_model['ares3.res.2.bias']
+    dst_model['albedo_residual_model_2.block3.res.3.weight'] = src_model['ares3.res.3.weight']
+    dst_model['albedo_residual_model_2.block3.res.3.bias'] = src_model['ares3.res.3.bias']
+    dst_model['albedo_residual_model_2.block3.res.3.running_mean'] = src_model['ares3.res.3.running_mean']
+    dst_model['albedo_residual_model_2.block3.res.3.running_var'] = src_model['ares3.res.3.running_var']
+    dst_model['albedo_residual_model_2.block3.res.5.weight'] = src_model['ares3.res.5.weight']
+    dst_model['albedo_residual_model_2.block3.res.5.bias'] = src_model['ares3.res.5.bias']
+    dst_model['albedo_residual_model_2.block4.res.0.weight'] = src_model['ares4.res.0.weight']
+    dst_model['albedo_residual_model_2.block4.res.0.bias'] = src_model['ares4.res.0.bias']
+    dst_model['albedo_residual_model_2.block4.res.0.running_mean'] = src_model['ares4.res.0.running_mean']
+    dst_model['albedo_residual_model_2.block4.res.0.running_var'] = src_model['ares4.res.0.running_var']
+    dst_model['albedo_residual_model_2.block4.res.2.weight'] = src_model['ares4.res.2.weight']
+    dst_model['albedo_residual_model_2.block4.res.2.bias'] = src_model['ares4.res.2.bias']
+    dst_model['albedo_residual_model_2.block4.res.3.weight'] = src_model['ares4.res.3.weight']
+    dst_model['albedo_residual_model_2.block4.res.3.bias'] = src_model['ares4.res.3.bias']
+    dst_model['albedo_residual_model_2.block4.res.3.running_mean'] = src_model['ares4.res.3.running_mean']
+    dst_model['albedo_residual_model_2.block4.res.3.running_var'] = src_model['ares4.res.3.running_var']
+    dst_model['albedo_residual_model_2.block4.res.5.weight'] = src_model['ares4.res.5.weight']
+    dst_model['albedo_residual_model_2.block4.res.5.bias'] = src_model['ares4.res.5.bias']
+    dst_model['albedo_residual_model_2.block5.res.0.weight'] = src_model['ares5.res.0.weight']
+    dst_model['albedo_residual_model_2.block5.res.0.bias'] = src_model['ares5.res.0.bias']
+    dst_model['albedo_residual_model_2.block5.res.0.running_mean'] = src_model['ares5.res.0.running_mean']
+    dst_model['albedo_residual_model_2.block5.res.0.running_var'] = src_model['ares5.res.0.running_var']
+    dst_model['albedo_residual_model_2.block5.res.2.weight'] = src_model['ares5.res.2.weight']
+    dst_model['albedo_residual_model_2.block5.res.2.bias'] = src_model['ares5.res.2.bias']
+    dst_model['albedo_residual_model_2.block5.res.3.weight'] = src_model['ares5.res.3.weight']
+    dst_model['albedo_residual_model_2.block5.res.3.bias'] = src_model['ares5.res.3.bias']
+    dst_model['albedo_residual_model_2.block5.res.3.running_mean'] = src_model['ares5.res.3.running_mean']
+    dst_model['albedo_residual_model_2.block5.res.3.running_var'] = src_model['ares5.res.3.running_var']
+    dst_model['albedo_residual_model_2.block5.res.5.weight'] = src_model['ares5.res.5.weight']
+    dst_model['albedo_residual_model_2.block5.res.5.bias'] = src_model['ares5.res.5.bias']
+    dst_model['albedo_residual_model_2.bn1.weight'] = src_model['areso.0.weight']
+    dst_model['albedo_residual_model_2.bn1.bias'] = src_model['areso.0.bias']
+    dst_model['albedo_residual_model_2.bn1.running_mean'] = src_model['areso.0.running_mean']
+    dst_model['albedo_residual_model_2.bn1.running_var'] = src_model['areso.0.running_var']
+    
     dst_model['light_estimator_model.conv1.0.weight'] = src_model['lconv.conv.0.weight']
     dst_model['light_estimator_model.conv1.0.bias'] = src_model['lconv.conv.0.bias']
     dst_model['light_estimator_model.conv1.1.weight'] = src_model['lconv.conv.1.weight']
