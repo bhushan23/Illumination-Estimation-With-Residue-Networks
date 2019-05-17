@@ -1,0 +1,1 @@
+Smooth L1 loss. Recon - MSE Loss. With albedo res net 2

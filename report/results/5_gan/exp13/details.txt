@@ -1,0 +1,1 @@
+Albedo Loss- 0.2. GAN loss lamda 0.01 Using MSE Loss as reconstruction loss
