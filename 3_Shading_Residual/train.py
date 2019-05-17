@@ -186,13 +186,13 @@ def train(sfs_net_model, syn_data, celeba_data=None, read_first=None,
     model_parameters = sfs_net_model.parameters()
     optimizer = torch.optim.Adam(model_parameters, lr=lr, weight_decay=wt_decay)
     albedo_loss = nn.SmoothL1Loss() #nn.L1Loss()
-    recon_loss  = nn.SmoothL1Loss() #nn.L1Loss() 
+    recon_loss  = nn.MSELoss() #nn.L1Loss() 
 
     if use_cuda:
         albedo_loss = albedo_loss.cuda()
         recon_loss  = recon_loss.cuda()
 
-    lamda_recon  = 0.5
+    lamda_recon  = 1
     lamda_albedo = 0.5
 
     if use_cuda:
