@@ -171,3 +171,16 @@ Method 7 is slight variation of method 6 with different Discriminator
 ![Real Sample 4](report/images/out/compare_all/real_4.png)
 ![Synthetic Sample 1](report/images/out/compare_all/syn_1.png)
 
+## Cite
+
+If you find this repo useful, you can cite this in your research as follows
+
+```
+@misc{illumination_estimation,
+  author = {Bhushan Sonawane},
+  title = {Illumination Estimation implementation in PyTorch},
+  year = {2019},
+  publisher = {GitHub},
+  url = {https://github.com/bhushan23/Illumination-Estimation-With-Residue-Networks}
+}
+```
