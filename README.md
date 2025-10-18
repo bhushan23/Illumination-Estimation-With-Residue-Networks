@@ -178,7 +178,7 @@ If you find this repo useful, you can cite this in your research as follows
 ```
 @misc{illumination_estimation,
   author = {Bhushan Sonawane},
-  title = {Illumination Estimation implementation in PyTorch},
+  title = {Illumination Estimation with residual network},
   year = {2019},
   publisher = {GitHub},
   url = {https://github.com/bhushan23/Illumination-Estimation-With-Residue-Networks}
